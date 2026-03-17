@@ -1,20 +1,22 @@
 Build a page or app screen by composing existing Void Energy primitives and documented recipes.
 
+## STOP — Read Before Proceeding
+
+You MUST read these files in order before writing any code. Do not skip any step.
+Failure to read these files will result in incorrect output.
+
+1. `src/config/component-registry.json` — find the right components for the brief
+2. `COMPOSITION-RECIPES.md` — pick the right page archetype
+3. `.claude/rules/page-composition.md` — understand composition rules
+4. The nearest existing page in `src/components/app/` — follow established patterns
+
+Only proceed to implementation after you have read all four.
+
 ## Input
 
 `$ARGUMENTS` is the user brief for the page or screen.
 
 If the brief is empty, ask the user what page should be built and what the desired mood is.
-
-## Mandatory Order
-
-1. Read `CLAUDE.md`
-2. Read `AI-PLAYBOOK.md`
-3. Read `src/config/component-registry.json`
-4. Read `COMPOSITION-RECIPES.md`
-5. Read any file-type rules under `.claude/rules/`
-6. Read the nearest local page analog in `src/pages/`, `src/components/app/`, or shared app-level `src/components/`
-7. Read `src/layouts/` only if the task changes the shared shell
 
 ## Goal
 
@@ -72,14 +74,16 @@ Use `COMPOSITION-RECIPES.md` to anchor the page:
 - Use `surface-raised` and `surface-sunk` wrappers where appropriate
 - Use `ActionBtn`, `IconBtn`, `tabs`, `sidebar`, `selector`, `toggle`, `tile`, and charts instead of hand-rolled substitutes
 
-### 5. Verify
+### 5. Verify (REQUIRED)
 
-Run the narrowest checks that fit the change:
+You MUST run these checks before reporting completion:
 
-- `npm run validate`
-- `npm run check`
-- `npm run scan`
-- `npm run test` when logic changed
+- `npm run validate` — confirm no system files were modified
+- `npm run check` — confirm no TypeScript errors
+
+Additionally run if applicable:
+- `npm run scan` — if you added any inline styles or spacing
+- `npm run test` — if you changed logic or state
 
 ## Output
 

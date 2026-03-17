@@ -106,17 +106,15 @@
   <!-- 1. HERO                                                           -->
   <!-- ═══════════════════════════════════════════════════════════════════ -->
   <header class="flex flex-col gap-lg items-center text-center">
-    <h1 class="text-primary">Void Energy</h1>
+    <h1 class="text-primary">Build with Void Energy</h1>
 
-    <p class="text-h3 max-w-3xl">
-      Atmospheres, physics, and density for any UI.
-    </p>
+    <p class="text-h3 max-w-3xl">Describe a page. Get a polished UI.</p>
 
     <p class="text-body text-dim max-w-3xl">
-      Not just theming. Void Energy changes how surfaces feel &mdash;
-      translucent glass, clean flat, or hard-pixel retro &mdash; while scaling
-      every spacing value through a single density coefficient. One codebase,
-      zero rebuilds.
+      Void Energy ships 40+ components, 12 visual themes, and 3 physics presets
+      &mdash; translucent glass, clean flat, or hard-pixel retro. You describe
+      what you want, and AI assembles it from the existing pieces. No CSS, no
+      code, no design work.
     </p>
 
     <div class="flex flex-row flex-wrap gap-md justify-center">
@@ -295,57 +293,69 @@
     <h2 class="text-center">How It Works</h2>
 
     <div class="grid grid-cols-1 tablet:grid-cols-2 gap-lg">
-      <!-- JS side -->
       <div class="surface-raised p-lg flex flex-col gap-md">
-        <h3>Register &amp; Switch</h3>
-        <pre class="surface-sunk p-md text-caption overflow-x-auto"><code
-            >{`// Register a custom atmosphere
-voidEngine.registerTheme('brand', {
-  mode: 'dark',
-  physics: 'glass',
-  palette: {
-    'bg-canvas':      '#060816',
-    'bg-surface':     'rgba(20, 24, 44, 0.72)',
-    'energy-primary': '#6ee7ff',
-    'text-main':      '#f8fafc',
-  }
-});
-
-// Switch — every component adapts instantly
-voidEngine.setAtmosphere('brand');`}</code
-          ></pre>
+        <h3>You Describe</h3>
+        <div class="surface-sunk p-md flex flex-col gap-sm">
+          <p class="text-dim text-small italic">
+            "Build me a dashboard with 4 stat cards, a revenue line chart, and a
+            traffic donut chart. Use the nebula atmosphere."
+          </p>
+          <p class="text-dim text-small italic">
+            "Create a settings page with profile, notifications, and appearance
+            sections. Keep it clean with the focus atmosphere."
+          </p>
+          <p class="text-dim text-small italic">
+            "Add a landing page &mdash; hero with CTA, feature grid, and FAQ.
+            Use the paper atmosphere for a warm feel."
+          </p>
+        </div>
+        <p class="text-caption text-mute">
+          Just describe the page, the layout, and the vibe you want.
+        </p>
       </div>
 
-      <!-- CSS side -->
       <div class="surface-raised p-lg flex flex-col gap-md">
-        <h3>Your Component Styles</h3>
-        <pre class="surface-sunk p-md text-caption overflow-x-auto"><code
-            >{`/* Your existing CSS — just use the tokens */
-.card {
-  background: var(--bg-surface);
-  border: var(--physics-border-width) solid
-    var(--border-color);
-  border-radius: var(--radius-base);
-  box-shadow: var(--shadow-float);
-  color: var(--text-main);
-}
-
-.card:hover {
-  border-color: var(--energy-primary);
-  box-shadow: var(--shadow-lift);
-}`}</code
-          ></pre>
+        <h3>AI Assembles</h3>
+        <div class="surface-sunk p-md flex flex-col gap-sm">
+          <p class="text-dim text-small">
+            <b class="text-main">1.</b> Reads the project rules and component registry
+          </p>
+          <p class="text-dim text-small">
+            <b class="text-main">2.</b> Picks the right pre-built components
+          </p>
+          <p class="text-dim text-small">
+            <b class="text-main">3.</b> Creates the page files with correct structure
+          </p>
+          <p class="text-dim text-small">
+            <b class="text-main">4.</b> Composes everything &mdash; no new CSS, no
+            new primitives
+          </p>
+          <p class="text-dim text-small">
+            <b class="text-main">5.</b> Auto-validates formatting, types, and system
+            integrity
+          </p>
+        </div>
+        <p class="text-caption text-mute">
+          You iterate by talking &mdash; "make the cards stack on mobile", "add
+          a search bar", "switch to the terminal theme."
+        </p>
       </div>
     </div>
 
-    <!-- What you get vs what you build -->
     <div class="grid grid-cols-1 tablet:grid-cols-2 gap-lg">
       <div class="surface-raised p-lg flex flex-col gap-md">
-        <h3 class="text-success">What You Get</h3>
+        <h3 class="text-success">What's Already Built</h3>
         <ul class="flex flex-col gap-sm">
           <li class="flex flex-row gap-sm items-center">
             <Check class="icon text-success shrink-0" data-size="sm" />
-            <span>12 built-in atmospheres with complete palettes</span>
+            <span
+              >40+ components &mdash; buttons, forms, charts, modals, toasts,
+              navigation</span
+            >
+          </li>
+          <li class="flex flex-row gap-sm items-center">
+            <Check class="icon text-success shrink-0" data-size="sm" />
+            <span>12 atmospheres with complete palettes and typography</span>
           </li>
           <li class="flex flex-row gap-sm items-center">
             <Check class="icon text-success shrink-0" data-size="sm" />
@@ -353,47 +363,37 @@ voidEngine.setAtmosphere('brand');`}</code
           </li>
           <li class="flex flex-row gap-sm items-center">
             <Check class="icon text-success shrink-0" data-size="sm" />
-            <span>Runtime theme engine with scoped &amp; temporary themes</span>
-          </li>
-          <li class="flex flex-row gap-sm items-center">
-            <Check class="icon text-success shrink-0" data-size="sm" />
             <span>Density scaling (compact / standard / relaxed)</span>
           </li>
           <li class="flex flex-row gap-sm items-center">
             <Check class="icon text-success shrink-0" data-size="sm" />
-            <span>Token pipeline &amp; build tooling</span>
+            <span>Dark and light modes</span>
           </li>
           <li class="flex flex-row gap-sm items-center">
             <Check class="icon text-success shrink-0" data-size="sm" />
-            <span>Physics-aware transitions &amp; animations</span>
+            <span>Responsive design for phones, tablets, and desktops</span>
           </li>
         </ul>
       </div>
 
       <div class="surface-raised p-lg flex flex-col gap-md">
-        <h3 class="text-premium">What You Build</h3>
+        <h3 class="text-premium">What You Do</h3>
         <ul class="flex flex-col gap-sm">
           <li class="flex flex-row gap-sm items-center">
             <Wrench class="icon text-premium shrink-0" data-size="sm" />
-            <span
-              >Token aliasing &mdash; map your CSS properties to Void's semantic
-              tokens (<code>--bg-surface</code>, <code>--energy-primary</code>,
-              etc.)</span
-            >
+            <span>Describe the pages you want in plain English</span>
           </li>
           <li class="flex flex-row gap-sm items-center">
             <Wrench class="icon text-premium shrink-0" data-size="sm" />
-            <span
-              >Component style mapping &mdash; update your component styles to
-              read from CSS custom properties instead of hardcoded values</span
-            >
+            <span>Pick an atmosphere that matches your vibe</span>
           </li>
           <li class="flex flex-row gap-sm items-center">
             <Wrench class="icon text-premium shrink-0" data-size="sm" />
-            <span
-              >Custom atmospheres &mdash; define palettes that match your brand
-              identity using the token contract</span
-            >
+            <span>Review the result in your browser and ask for changes</span>
+          </li>
+          <li class="flex flex-row gap-sm items-center">
+            <Wrench class="icon text-premium shrink-0" data-size="sm" />
+            <span>Deploy your site for free when you're happy with it</span>
           </li>
         </ul>
       </div>
@@ -419,26 +419,29 @@ voidEngine.setAtmosphere('brand');`}</code
   <!-- 5. BEST FOR                                                       -->
   <!-- ═══════════════════════════════════════════════════════════════════ -->
   <section class="flex flex-col gap-lg">
-    <h2 class="text-center">Is Void Energy Right For You?</h2>
+    <h2 class="text-center">Who Is This For?</h2>
 
     <div class="surface-raised p-lg flex flex-col tablet:flex-row gap-lg">
       <div class="flex-1 flex flex-col gap-sm">
-        <h4 class="text-success">Best For</h4>
+        <h4 class="text-success">Great Fit</h4>
         <ul class="flex flex-col gap-sm text-dim text-small">
-          <li>White-label platforms and multi-tenant products</li>
-          <li>Narrative or immersive experiences</li>
-          <li>Multi-brand apps where visual identity is a feature</li>
-          <li>Products that need runtime theme customization</li>
+          <li>You want a polished website without writing code</li>
+          <li>You want to experiment with different visual styles quickly</li>
+          <li>
+            You care about how your site looks and feels, not the tech behind it
+          </li>
+          <li>You want a site that works on every device out of the box</li>
         </ul>
       </div>
       <div class="flex-1 flex flex-col gap-sm">
-        <h4 class="text-mute">Not Needed When</h4>
+        <h4 class="text-mute">Maybe Not</h4>
         <ul class="flex flex-col gap-sm text-dim text-small">
           <li>
-            Your product has one fixed brand and one theme is fine forever
+            You need a very specific brand look that can't be achieved with
+            themes
           </li>
-          <li>You need a massive component library out of the box</li>
-          <li>You prefer copy-paste component ownership (see shadcn)</li>
+          <li>You want to hand-write every line of CSS yourself</li>
+          <li>You need features beyond what the 40+ components cover</li>
         </ul>
       </div>
     </div>
@@ -549,7 +552,7 @@ voidEngine.setAtmosphere('brand');`}</code
                   aria-label="Remove {tag.name}"
                   onclick={() => {
                     chipTags = chipTags.filter((t) => t.id !== tag.id);
-                  }}>&#10005;</button
+                  }}>✕</button
                 >
               </div>
             {/each}

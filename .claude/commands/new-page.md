@@ -1,5 +1,18 @@
 Create a new page using the standard Void Energy starter scaffold.
 
+## STOP — Read Before Proceeding
+
+You MUST read these files in order before writing any code. Do not skip any step.
+Failure to read these files will result in incorrect output.
+
+1. `src/config/component-registry.json` — find the right components for the page
+2. `COMPOSITION-RECIPES.md` — pick the right page archetype
+3. `.claude/rules/new-page.md` — understand the scaffold template
+4. `.claude/rules/page-composition.md` — understand composition rules
+5. The nearest existing page in `src/components/app/` — follow established patterns
+
+Only proceed to implementation after you have read all five.
+
 ## Input
 
 `$ARGUMENTS` is the page name and brief, for example:
@@ -13,16 +26,6 @@ If the input is missing, ask for:
 - route name
 - page purpose
 - desired mood
-
-## Mandatory Read Order
-
-1. `CLAUDE.md`
-2. `AI-PLAYBOOK.md`
-3. `src/config/component-registry.json`
-4. `COMPOSITION-RECIPES.md`
-5. `.claude/rules/page-composition.md`
-6. `.claude/rules/new-page.md`
-7. nearest local analog in `src/pages/`, `src/components/app/`, or shared app-level `src/components/`
 
 ## What To Create
 
@@ -55,13 +58,15 @@ The `.svelte` screen should own:
 - If the registry does not cover a needed primitive, stop and ask
 - Prefer native HTML when the platform already gives the right semantics
 
-## Verification
+## Verification (REQUIRED)
 
-Run the narrowest checks that fit the result:
+You MUST run these checks before reporting completion:
 
-- `npm run validate`
-- `npm run check`
-- `npm run scan`
+- `npm run validate` — confirm no system files were modified
+- `npm run check` — confirm no TypeScript errors
+
+Additionally run if applicable:
+- `npm run scan` — if you added any inline styles or spacing
 
 ## Output
 

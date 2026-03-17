@@ -11,7 +11,7 @@
     "baseline:update": "tsx scripts/update-starter-baseline.ts",
     "scan": "tsx scripts/scan-physics.ts",
     "check:registry": "tsx scripts/check-component-registry.ts",
-    "check": "npm run check:registry && astro check",
+    "check": "npm run check:registry && astro check --minimumSeverity warning",
     "validate": "tsx scripts/validate.ts",
     "test": "vitest run",
     "format": "prettier --write ."

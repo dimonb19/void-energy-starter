@@ -111,13 +111,17 @@ Keep the route file thin. Put page body and interactions in the page-level `.sve
 - Do not use class-based state like `is-active`, `open`, or `selected`
 - Do not put complex page logic directly in `.astro` when a page-level `.svelte` file should own it
 - Do not put page-specific body markup into `src/layouts/`
+- Do not use Bash/shell commands to create, copy, or move source files — use Edit/Write tools only
+- Do not edit `tailwind.config.mjs` — tokens flow from `src/config/design-tokens.ts` automatically
 
 ## 6. Commands
 
-- `npm run validate`
-- `npm run check`
-- `npm run scan`
-- `npm run test`
+- `npm run validate` — verify no system files were modified
+- `npm run check` — TypeScript and registry validation
+- `npm run scan` — find hardcoded physics/token values
+- `npm run test` — run test suite
+
+**Always run `npm run validate && npm run check` after completing a page build or multi-file change.** Do not skip this step.
 
 ## 7. Decision Tree
 
@@ -129,3 +133,12 @@ Keep the route file thin. Put page body and interactions in the page-level `.sve
 - Need a toast? `toast.show`, `toast.promise`, or `toast.loading`.
 - Need state? `$state` for local state. `voidEngine`, `user`, `toast`, `modal` for global state.
 - Need styling? Prefer composition first. If you truly need SCSS, keep it token-only and app-local.
+
+## 8. Error Recovery
+
+- **Hook blocked an edit to a protected file?** The file is read-only by design. Use the existing component as-is, compose with Tailwind, or ask the user if the system truly lacks what you need.
+- **Token scan found raw values?** Replace hardcoded px/hex/rgb/hsl with the matching semantic token from `src/config/design-tokens.ts` or Tailwind utility. Example: `32px` → `gap-lg`, `#ff0000` → `text-error`.
+- **Type check failed?** Read the relevant `.d.ts` file in `src/types/` for the correct interface shape. Match your props and types to what the component expects.
+- **Validate failed?** Run `npm run validate` to see which system files were modified. Restore them with `git checkout <file>`. If the change was intentional (it shouldn't be), ask the user.
+- **Build failed?** Run `npm run check` for TypeScript errors. Check imports use `@components/`, `@layouts/`, `@lib/`, `@stores/` path aliases.
+- **Bash command blocked?** Do not use Bash to create or modify source files. Use the Edit/Write tools for `src/pages/` and `src/components/app/` only.

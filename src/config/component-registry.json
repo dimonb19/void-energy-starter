@@ -15,7 +15,48 @@
       "Prefer native HTML when the platform already provides the right semantics. A missing wrapper does not imply a missing capability."
     ],
     "spacing": ["xs=8px", "sm=16px", "md=24px", "lg=32px", "xl=48px"],
-    "showcase": "https://void-energy-ui.vercel.app"
+    "showcase": "https://void-energy-ui.vercel.app",
+    "_categories": {
+      "field": [
+        "search-field",
+        "edit-field",
+        "generate-field",
+        "password-field",
+        "color-field",
+        "copy-field",
+        "slider-field",
+        "toggle",
+        "switcher",
+        "selector",
+        "combobox",
+        "drop-zone",
+        "edit-textarea",
+        "generate-textarea",
+        "media-slider"
+      ],
+      "form": ["form-field", "password-meter", "password-checklist"],
+      "action": [
+        "action-button",
+        "icon-button",
+        "themes-button",
+        "profile-button"
+      ],
+      "overlay": ["dropdown"],
+      "nav": ["tabs", "pagination", "load-more", "breadcrumbs", "sidebar"],
+      "layout": ["settings-row"],
+      "interaction": ["pull-refresh"],
+      "feedback": ["skeleton", "portal-loader"],
+      "motion": ["loading-text-cycler", "kinetic-text"],
+      "chart": [
+        "progress-ring",
+        "sparkline",
+        "stat-card",
+        "donut-chart",
+        "line-chart",
+        "bar-chart"
+      ],
+      "content": ["tile", "story-category"]
+    }
   },
   "types": {
     "BreadcrumbItem": {

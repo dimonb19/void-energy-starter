@@ -9,6 +9,15 @@
             "command": ".claude/hooks/protect-generated.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/protect-bash-writes.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [

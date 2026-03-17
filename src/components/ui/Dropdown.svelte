@@ -1,0 +1,238 @@
+<!--
+  DROPDOWN COMPONENT
+  A generic trigger + floating panel container.
+  Uses Popover API for top-layer positioning and @floating-ui/dom for smart placement.
+
+  USAGE
+  ─────────────────────────────────────
+  <Dropdown label="Options">
+    {#snippet trigger()}
+      <span>Click me <ChevronDown class="icon" /></span>
+    {/snippet}
+    <div class="p-md">Any content here</div>
+  </Dropdown>
+  ─────────────────────────────────────
+
+  PROPS:
+  - trigger: Snippet — content rendered inside the toggle button
+  - children: Snippet — panel content (arbitrary markup)
+  - placement: Floating UI placement (default: 'bottom-start')
+  - offset: Pixel gap between trigger and panel (default: 8)
+  - open: Boolean — bindable open state
+  - onchange: Callback fired when open state changes
+  - label: Accessible label for the trigger button
+  - class: Additional CSS classes on wrapper
+  - triggerClass: Additional CSS classes on the trigger button (e.g. 'btn-icon')
+
+  ACCESSIBILITY:
+  - Trigger: button with aria-expanded, aria-haspopup="true", aria-controls
+  - Panel: role="region" (generic container)
+  - Escape closes dropdown, returns focus to trigger
+  - Click outside closes dropdown
+
+  @see /_dropdown.scss for physics-aware styling
+-->
+<script lang="ts">
+  import type { Snippet } from 'svelte';
+  import type { Placement } from '@floating-ui/dom';
+  import {
+    computePosition,
+    autoUpdate,
+    offset as offsetMiddleware,
+    flip,
+    shift,
+  } from '@floating-ui/dom';
+  import { layerStack } from '@lib/layer-stack.svelte';
+  import {
+    DROPDOWN_PANEL_OFFSET_PX,
+    DROPDOWN_VIEWPORT_PADDING_PX,
+  } from '@config/ui-geometry';
+
+  interface DropdownProps {
+    trigger: Snippet;
+    children: Snippet;
+    placement?: Placement;
+    offset?: number;
+    class?: string;
+    triggerClass?: string;
+    open?: boolean;
+    onchange?: (open: boolean) => void;
+    label?: string;
+  }
+
+  let {
+    trigger,
+    children,
+    placement = 'bottom-start',
+    offset: offsetPx = DROPDOWN_PANEL_OFFSET_PX,
+    class: className = '',
+    triggerClass = '',
+    open = $bindable(false),
+    onchange,
+    label = 'Toggle dropdown',
+  }: DropdownProps = $props();
+
+  let triggerEl = $state<HTMLButtonElement | null>(null);
+  let panelEl = $state<HTMLDivElement | null>(null);
+
+  const componentId = $props.id();
+  const panelId = `dropdown-${componentId}`;
+
+  let cleanupAutoUpdate: (() => void) | null = null;
+  let generation = 0;
+  let layerId: number | null = null;
+
+  function toggle() {
+    open = !open;
+    onchange?.(open);
+  }
+
+  function close() {
+    if (!open) return;
+    open = false;
+    onchange?.(false);
+  }
+
+  // Keep the panel explicitly inert when closed so fallback behavior is
+  // visible in the DOM and does not depend on Popover support.
+  $effect(() => {
+    if (!panelEl) return;
+
+    if ('inert' in panelEl) {
+      (panelEl as HTMLElement & { inert: boolean }).inert = !open;
+    }
+
+    if (open) {
+      panelEl.removeAttribute('inert');
+    } else {
+      panelEl.setAttribute('inert', '');
+    }
+  });
+
+  // Positioning & popover lifecycle (generation counter prevents stale callbacks)
+  $effect(() => {
+    if (!open || !triggerEl || !panelEl) return;
+    const gen = ++generation;
+
+    try {
+      panelEl.showPopover();
+    } catch {}
+
+    layerId = layerStack.push(() => {
+      close();
+      triggerEl?.focus();
+    });
+
+    cleanupAutoUpdate = autoUpdate(triggerEl, panelEl, () => {
+      const trigger = triggerEl;
+      const panel = panelEl;
+
+      if (!panel || !trigger) return;
+
+      computePosition(trigger, panel, {
+        placement,
+        middleware: [
+          offsetMiddleware(offsetPx),
+          flip(),
+          shift({ padding: DROPDOWN_VIEWPORT_PADDING_PX }),
+        ],
+      }).then(({ x, y }) => {
+        if (panelEl !== panel) return;
+
+        Object.assign(panel.style, {
+          left: `${x}px`,
+          top: `${y}px`,
+          position: 'absolute',
+        });
+      });
+    });
+
+    // Allow one frame for CSS transition from closed → open
+    requestAnimationFrame(() => {
+      if (gen === generation) {
+        panelEl?.setAttribute('data-state', 'open');
+      }
+    });
+
+    return () => {
+      generation += 1;
+
+      if (layerId !== null) {
+        layerStack.remove(layerId);
+        layerId = null;
+      }
+
+      if (cleanupAutoUpdate) {
+        cleanupAutoUpdate();
+        cleanupAutoUpdate = null;
+      }
+      if (panelEl) {
+        panelEl.setAttribute('data-state', 'closed');
+
+        const duration = parseFloat(
+          getComputedStyle(panelEl).transitionDuration,
+        );
+        if (duration === 0) {
+          try {
+            panelEl.hidePopover();
+          } catch {}
+        } else {
+          const el = panelEl;
+          el.addEventListener(
+            'transitionend',
+            () => {
+              if (gen === generation) {
+                try {
+                  el.hidePopover();
+                } catch {}
+              }
+            },
+            { once: true },
+          );
+        }
+      }
+    };
+  });
+
+  // Click outside (registered only while open)
+  $effect(() => {
+    if (!open) return;
+
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node;
+      if (triggerEl?.contains(target) || panelEl?.contains(target)) return;
+      close();
+    }
+
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  });
+</script>
+
+<div class="dropdown {className}">
+  <button
+    bind:this={triggerEl}
+    type="button"
+    class="dropdown-trigger {triggerClass}"
+    aria-expanded={open}
+    aria-haspopup="true"
+    aria-controls={panelId}
+    aria-label={label}
+    onclick={toggle}
+  >
+    {@render trigger()}
+  </button>
+
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    bind:this={panelEl}
+    id={panelId}
+    class="dropdown-panel"
+    popover="manual"
+    role="region"
+    aria-hidden={open ? undefined : 'true'}
+    aria-label={label}
+  >
+    {@render children()}
+  </div>
+</div>

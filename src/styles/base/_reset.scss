@@ -1,0 +1,310 @@
+/* Global reset and canvas setup. */
+
+@use 'sass:map';
+@use '../abstracts' as *;
+@use 'typography' as *;
+@use '../config/generated-themes' as generated;
+
+// =========================================
+// 0. THE DENSITY ENGINE (Bulletproofed)
+// =========================================
+
+:root {
+  // Allow CSS transitions between keyword sizes (0 ↔ auto).
+  // Required for ::details-content animation. Progressive enhancement.
+  interpolate-size: allow-keywords;
+
+  // Base unit (4px).
+  --unit: 0.25rem;
+
+  // Navigation height (for global padding).
+  --nav-height: calc(16 * var(--unit) * var(--density, 1)); // 64px
+
+  // Spacing scale uses --density fallback to avoid invalid values.
+  --space-xs: calc(2 * var(--unit) * var(--density, 1)); // 8px
+  --space-sm: calc(4 * var(--unit) * var(--density, 1)); // 16px
+  --space-md: calc(6 * var(--unit) * var(--density, 1)); // 24px
+  --space-lg: calc(8 * var(--unit) * var(--density, 1)); // 32px
+  --space-xl: calc(12 * var(--unit) * var(--density, 1)); // 48px
+  --space-2xl: calc(16 * var(--unit) * var(--density, 1)); // 64px
+  --space-3xl: calc(24 * var(--unit) * var(--density, 1)); // 96px
+  --space-4xl: calc(32 * var(--unit) * var(--density, 1)); // 128px
+  --space-5xl: calc(40 * var(--unit) * var(--density, 1)); // 160px
+
+  // Minimum touch target (WCAG).
+  --size-touch-min: 2.75rem;
+
+  // Control height scales with density but never below 2.25rem.
+  --control-height: max(2.25rem, calc(2.75rem * var(--density, 1)));
+
+  // Control padding scales with density.
+  --control-padding-x: var(--space-sm);
+  --control-padding-y: calc(
+    var(--space-xs) * 0.75
+  ); // Slightly tighter vertical alignment
+
+  // Radius scale.
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  --text-scale: 1;
+  --scrollbar-width: 6px; // void-ignore (Scrollbar constant)
+
+  // Breadcrumbs height (single-line trail with vertical padding).
+  --breadcrumbs-height: calc(var(--space-md) + var(--space-xs) * 2);
+
+  // Structural constants (component layout constraints).
+  --modal-width-xs: #{map.get(
+      generated.$structural-constants,
+      'modal-width-xs'
+    )};
+  --modal-width-sm: #{map.get(
+      generated.$structural-constants,
+      'modal-width-sm'
+    )};
+  --modal-width-md: #{map.get(
+      generated.$structural-constants,
+      'modal-width-md'
+    )};
+  --modal-width-lg: #{map.get(
+      generated.$structural-constants,
+      'modal-width-lg'
+    )};
+  --modal-width-xl: #{map.get(
+      generated.$structural-constants,
+      'modal-width-xl'
+    )};
+  --tooltip-max-width: #{map.get(
+      generated.$structural-constants,
+      'tooltip-max-width'
+    )};
+  --dialog-gutter: var(--space-xl);
+  --dialog-gutter-lg: var(--space-2xl);
+
+  // Safe Area Insets (Edge-to-Edge Viewport)
+  // Browser-provided via env(). Wrapped in custom properties for consistent fallback.
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+// =========================================
+// 1. BOX SIZING & DEFAULTS
+// =========================================
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+// =========================================
+// 2. THE VOID CANVAS
+// =========================================
+
+html {
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+
+  // Disable native pull-to-refresh globally.
+  // Custom PTR component provides consistent, styled, SPA-safe refresh.
+  // Native PTR varies across browsers and triggers full page reload.
+  overscroll-behavior-y: none;
+  padding-block: 0;
+  overflow-x: hidden;
+
+  &:has(dialog[open]) {
+    overflow-y: hidden;
+  }
+
+  // Keep fluid math stable on mobile rotation.
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+
+  background-color: var(--bg-canvas);
+  background-image: radial-gradient(
+    circle at 50% 0%,
+    var(--bg-spotlight) 0%,
+    var(--bg-canvas) 85%
+  );
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  @media (pointer: coarse) {
+    background-attachment: scroll; // Disable parallax on mobile.
+  }
+
+  @include typography('body');
+  color: var(--text-dim);
+
+  // Spring transitions for theme changes
+  transition:
+    background-color var(--speed-base) var(--ease-spring-gentle),
+    color var(--speed-base) var(--ease-spring-gentle);
+
+  -webkit-font-smoothing: antialiased;
+  text-align: left;
+  word-spacing: 0.05em;
+
+  @include laser-scrollbar;
+}
+
+body {
+  min-height: 100dvh;
+  padding-top: calc(
+    var(--nav-height) + var(--safe-top)
+  ); // Fixed nav + status bar
+  padding-bottom: var(
+    --bottom-nav-clearance,
+    0px
+  ); // Mobile bottom nav clearance
+
+  // Extra clearance when breadcrumbs are present (set by Astro Layout at SSR)
+  &[data-has-breadcrumbs] {
+    padding-top: calc(
+      var(--nav-height) + var(--safe-top) + var(--breadcrumbs-height)
+    );
+  }
+}
+
+// Anchor scroll offset — prevents fixed navbar from covering section targets
+section[id] {
+  scroll-margin-top: calc(
+    var(--nav-height) + var(--safe-top) + var(--space-lg)
+  );
+
+  // Extra offset when breadcrumbs are present
+  body[data-has-breadcrumbs] & {
+    scroll-margin-top: calc(
+      var(--nav-height) + var(--safe-top) + var(--breadcrumbs-height) +
+        var(--space-lg)
+    );
+  }
+}
+
+// =========================================
+// 3. GLOBAL INTERACTION
+// =========================================
+
+::selection {
+  background: alpha(var(--energy-primary), 25%);
+  color: var(--text-main);
+  text-shadow: none;
+}
+
+a,
+button,
+[role='button'],
+select,
+input,
+textarea {
+  outline: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+
+  // Constrained transition list.
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke,
+    opacity, box-shadow, transform, filter, backdrop-filter;
+
+  transition-duration: var(--speed-fast);
+  transition-timing-function: var(--ease-spring-snappy);
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--energy-primary);
+    box-shadow: var(--focus-ring);
+    z-index: z('base');
+  }
+}
+
+a,
+button,
+[role='button'] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent; // Remove iOS blue/gray tap flash
+  touch-action: manipulation; // Disable double-tap zoom, removes 300ms delay
+}
+
+// Disabled states.
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: var(--bg-sunk);
+  border: var(--physics-border-width) solid var(--border-color);
+  color: var(--text-mute);
+}
+
+// Media
+img,
+picture,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background-color: var(--bg-sunk);
+}
+
+// Alt text styling — shown when image fails to load.
+img {
+  font-style: italic;
+  font-size: var(--font-size-small);
+  color: var(--text-mute);
+}
+
+audio {
+  display: block;
+  width: 100%;
+  accent-color: var(--energy-primary);
+}
+
+iframe {
+  display: block;
+  max-width: 100%;
+  border: var(--physics-border-width) solid var(--border-color);
+  border-radius: var(--radius-base);
+  background-color: var(--bg-sunk);
+}
+
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+// Bare popover reset — establishes sane defaults for all [popover] elements.
+// Class-based popovers (.dropdown-panel, .toast-region) add further overrides.
+[popover] {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  inset: unset;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+// Dividers
+hr {
+  border: 0;
+  height: var(--physics-border-width);
+  background: var(--energy-secondary);
+  opacity: 0.3;
+  margin: var(--space-md) 0;
+}

@@ -1,0 +1,32 @@
+/* Triad theme entry: emits physics and atmosphere layers with defaults. */
+
+@use 'sass:map';
+@use '../abstracts/engine' as engine;
+@use '../config/generated-themes' as config;
+
+// Global defaults for initial paint before JS sets attributes.
+:root {
+  // Default physics preset.
+  $default-physics: map.get(engine.$physics-presets, 'glass');
+
+  @each $key, $val in $default-physics {
+    --#{$key}: #{$val};
+  }
+
+  // Default atmosphere palette.
+  $default-theme: map.get(config.$themes, 'void');
+  $default-palette: map.get($default-theme, 'palette');
+
+  color-scheme: dark;
+  @each $key, $val in $default-palette {
+    --#{$key}: #{$val};
+  }
+}
+
+// Emit [data-physics="..."] layer.
+@include engine.emit-physics;
+
+// Emit [data-atmosphere="..."] layer.
+@each $name, $theme-config in config.$themes {
+  @include engine.generate-atmosphere($name, $theme-config);
+}

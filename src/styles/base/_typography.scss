@@ -1,0 +1,544 @@
+/* Typography scale and semantic mixins. */
+
+@use 'sass:map';
+@use '../abstracts' as *;
+@use '../config/generated-themes' as generated;
+@use '../components/anchors';
+
+// Typography maps (generated from design-tokens.ts).
+$font-scale: generated.$font-scale;
+$tablet-overrides: generated.$tablet-overrides;
+$font-weights: generated.$font-weights;
+$line-heights: generated.$line-heights;
+$letter-spacings: generated.$letter-spacings;
+
+/* Emit CSS variables for runtime scaling. */
+:root {
+  // Font sizes.
+  --font-size-h1: #{map.get($font-scale, 'h1')};
+  --font-size-h2: #{map.get($font-scale, 'h2')};
+  --font-size-h3: #{map.get($font-scale, 'h3')};
+  --font-size-h4: #{map.get($font-scale, 'h4')};
+  --font-size-h5: #{map.get($font-scale, 'h5')};
+  --font-size-h6: #{map.get($font-scale, 'h6')};
+  --font-size-body: #{map.get($font-scale, 'body')};
+  --font-size-small: #{map.get($font-scale, 'small')};
+  --font-size-caption: #{map.get($font-scale, 'caption')};
+
+  // Line heights.
+  --line-height-h1: #{map.get($line-heights, 'h1')};
+  --line-height-h2: #{map.get($line-heights, 'h2')};
+  --line-height-h3: #{map.get($line-heights, 'h3')};
+  --line-height-h4: #{map.get($line-heights, 'h4')};
+  --line-height-h5: #{map.get($line-heights, 'h5')};
+  --line-height-h6: #{map.get($line-heights, 'h6')};
+  --line-height-body: #{map.get($line-heights, 'body')};
+  --line-height-small: #{map.get($line-heights, 'small')};
+  --line-height-caption: #{map.get($line-heights, 'caption')};
+
+  // Font weights.
+  --font-weight-extrabold: #{map.get($font-weights, 'cta')};
+  --font-weight-bold: #{map.get($font-weights, 'h1')};
+  --font-weight-semibold: #{map.get($font-weights, 'h3')};
+  --font-weight-medium: #{map.get($font-weights, 'h5')};
+  --font-weight-regular: #{map.get($font-weights, 'body')};
+
+  // Letter-spacing (optical tracking).
+  --letter-spacing-h1: #{map.get($letter-spacings, 'h1')};
+  --letter-spacing-h2: #{map.get($letter-spacings, 'h2')};
+  --letter-spacing-h3: #{map.get($letter-spacings, 'h3')};
+  --letter-spacing-h4: #{map.get($letter-spacings, 'h4')};
+  --letter-spacing-h5: #{map.get($letter-spacings, 'h5')};
+  --letter-spacing-h6: #{map.get($letter-spacings, 'h6')};
+  --letter-spacing-body: #{map.get($letter-spacings, 'body')};
+  --letter-spacing-small: #{map.get($letter-spacings, 'small')};
+  --letter-spacing-caption: #{map.get($letter-spacings, 'caption')};
+
+  // Code font (theme-independent — always monospace).
+  --font-code: 'Courier Prime', monospace;
+}
+
+/* Typography mixin. */
+@mixin typography($level: 'body', $is-input: false) {
+  @if map.has-key($font-scale, $level) {
+    // Headings use heading font; body uses body font with optional input weight.
+    @if (
+      $level ==
+        'h1' or
+        $level ==
+        'h2' or
+        $level ==
+        'h3' or
+        $level ==
+        'h4' or
+        $level ==
+        'h5' or
+        $level ==
+        'h6'
+    ) {
+      font-family: var(--font-heading);
+      font-weight: map.get($font-weights, $level);
+    } @else {
+      font-family: var(--font-body);
+
+      @if $is-input {
+        font-weight: map.get($font-weights, 'input');
+      } @else {
+        font-weight: map.get($font-weights, 'body');
+      }
+    }
+
+    $base-clamp: map.get($font-scale, $level);
+
+    // Scale with --text-scale while keeping the clamp bounds.
+    font-size: calc(#{$base-clamp} * var(--text-scale));
+    line-height: map.get($line-heights, $level);
+    letter-spacing: map.get($letter-spacings, $level);
+
+    // Tablet overrides for H1-H4 to preserve visual hierarchy.
+    @if map.has-key($tablet-overrides, $level) {
+      @include respond-up(tablet) {
+        $override: map.get($tablet-overrides, $level);
+        font-size: calc(#{$override} * var(--text-scale));
+      }
+    }
+  } @else {
+    @warn "Typography level `#{$level}` not found in scale.";
+  }
+}
+
+/* Global elements. */
+
+body {
+  font-family: var(--font-body);
+
+  font-size: calc(1rem * var(--text-scale));
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
+}
+
+/* Layer 1: headers (100% opacity). */
+h1 {
+  @include typography('h1');
+  color: var(--text-main);
+}
+h2 {
+  @include typography('h2');
+  color: var(--text-main);
+}
+h3 {
+  @include typography('h3');
+  color: var(--text-main);
+}
+h4 {
+  @include typography('h4');
+  color: var(--text-main);
+}
+
+/* Layer 2: subheaders/body (85% opacity). */
+h5 {
+  @include typography('h5');
+  color: var(--text-dim);
+}
+h6 {
+  @include typography('h6');
+  color: var(--text-dim);
+}
+
+p,
+ul,
+ol,
+li,
+label,
+button {
+  @include typography('body');
+  color: var(--text-dim);
+}
+
+/* Layer 3: metadata (60% opacity). */
+caption,
+small {
+  @include typography('small');
+  color: var(--text-mute);
+}
+
+/* Inputs: H5 size with input weight and active text color. */
+input,
+select,
+textarea {
+  @include typography('h5', $is-input: true); // Pass flag to force weight: 400
+  color: var(--text-main);
+}
+
+/* Utility classes. */
+.text-caption {
+  @include typography('caption');
+}
+.text-small {
+  @include typography('small');
+}
+.text-body {
+  @include typography('body');
+}
+.text-h1 {
+  @include typography('h1');
+}
+.text-h2 {
+  @include typography('h2');
+}
+.text-h3 {
+  @include typography('h3');
+}
+.text-h4 {
+  @include typography('h4');
+}
+.text-h5 {
+  @include typography('h5');
+}
+.text-h6 {
+  @include typography('h6');
+}
+
+// SINGLE LINE (Headings / Usernames)
+.text-truncate {
+  @include text-truncate(1);
+}
+
+// MULTI LINE (Narrative Descriptions)
+.text-clamp-2 {
+  @include text-truncate(2);
+}
+.text-clamp-3 {
+  @include text-truncate(3);
+}
+
+// BREAK WORDS (For User Content / Logs)
+.text-break {
+  @include text-wrap-force;
+}
+
+/* =========================================
+   5. LONG-FORM CONTENT (Legal / Docs)
+   ========================================= */
+// Usage: Wrap your Markdown or Legal Text in <div class="legal-content">
+// This re-enables lists ONLY inside this wrapper.
+
+.legal-content {
+  color: var(--text-dim); // Ensure readable contrast
+
+  // 1. RE-ENABLE STANDARD LISTS
+  ul,
+  ol {
+    margin-bottom: var(--space-md);
+    padding-left: var(--space-md);
+  }
+
+  ul {
+    list-style-type: disc;
+  }
+  ol {
+    list-style-type: decimal;
+  }
+
+  // Nested list support
+  ul ul {
+    list-style-type: circle;
+    margin-bottom: 0;
+  }
+  ul ul ul {
+    list-style-type: square;
+  }
+
+  // 2. UTILITY LIST STYLES
+  ol.uppercase {
+    list-style-type: upper-alpha;
+  }
+  ol.lowercase {
+    list-style-type: lower-alpha;
+  }
+
+  // 3. LEGAL SUB-ORDERED (1.1, 1.2)
+  // Provides contract-style numbering without browser bullet defaults.
+  ol.subordered {
+    list-style-type: none;
+    counter-reset: item;
+    padding-left: 0; // Legal numbering typically aligns flush-left
+
+    & > li {
+      display: table;
+      counter-increment: item;
+      margin-bottom: var(--space-xs);
+
+      &:before {
+        content: counters(item, '.') '. ';
+        display: table-cell;
+        padding-right: var(--space-sm);
+        color: var(--text-main); // Bright numbering distinguishes hierarchy
+        font-weight: var(--font-weight-semibold);
+        white-space: nowrap;
+      }
+    }
+
+    // Recursive nesting support
+    li ol.subordered > li:before {
+      content: counters(item, '.') ' ';
+    }
+  }
+
+  // 4. TYPOGRAPHY FIXES
+  // Legal docs need clear distinction between emphasis and headings.
+  strong,
+  b {
+    color: var(--text-main); // Highlight key terms (e.g., "SECTION 1")
+    font-weight: var(--font-weight-bold);
+  }
+
+  a {
+    @extend .link; // Apply system link styling for consistent emphasis
+  }
+}
+
+/* =========================================
+   6. CODE ELEMENTS (code, pre, kbd, samp, var)
+   ========================================= */
+
+// ---------------------------------------------------------------------------
+// 6a. INLINE CODE
+// ---------------------------------------------------------------------------
+// Subtle recessed inline fragment. Same pattern as .chip-label-sunken.
+// Uses em-relative sizing to scale with parent context.
+
+code {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  font-weight: var(--font-weight-regular);
+  line-height: inherit;
+  color: var(--text-main);
+
+  // Inline recessed surface (lighter than surface-sunk).
+  background: var(--bg-sunk);
+  border: var(--physics-border-width) solid var(--border-color);
+  border-radius: calc(var(--radius-base) * 0.5);
+  padding: 0.125em 0.375em;
+
+  // Prevent line-break inside short code fragments.
+  white-space: nowrap;
+
+  // Light mode: bg-sunk can be too subtle (3-5% opacity).
+  @include when-light($low-specificity: true) {
+    background: alpha(var(--text-main), 7%);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 6b. CODE BLOCKS
+// ---------------------------------------------------------------------------
+// Block-level recessed surface for multi-line code.
+
+pre {
+  font-family: var(--font-code);
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+  color: var(--text-main);
+  tab-size: 2;
+
+  // Block recessed surface.
+  @include surface-sunk;
+  padding: var(--space-md);
+  overflow-x: auto;
+  @include laser-scrollbar;
+
+  // Reset inline code styles when nested inside pre.
+  // Markdown renderers output <pre><code>...</code></pre>.
+  code {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    font-size: inherit;
+    color: inherit;
+    white-space: inherit;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 6c. KEYBOARD INPUT
+// ---------------------------------------------------------------------------
+// Raised surface mimicking a physical key cap.
+
+kbd {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  font-weight: var(--font-weight-regular);
+  line-height: inherit;
+  color: var(--text-main);
+
+  // Raised surface (key cap).
+  background: var(--bg-surface);
+  border: var(--physics-border-width) solid var(--border-color);
+  border-radius: calc(var(--radius-base) * 0.5);
+  box-shadow: var(--shadow-float);
+  padding: 0.125em 0.375em;
+
+  // Slightly thicker bottom border for 3D key effect.
+  border-bottom-width: calc(var(--physics-border-width) * 2);
+
+  // Retro: uniform hard edges, no 3D effect.
+  @include when-retro($low-specificity: true) {
+    box-shadow: none;
+    border-bottom-width: var(--physics-border-width);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 6d. SAMPLE OUTPUT
+// ---------------------------------------------------------------------------
+// Program/system output. Font change only, no surface.
+
+samp {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  line-height: inherit;
+  color: var(--text-dim);
+}
+
+// ---------------------------------------------------------------------------
+// 6e. VARIABLE / PLACEHOLDER
+// ---------------------------------------------------------------------------
+// Mathematical or code variable. Italic + energy color for emphasis.
+
+var {
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  font-style: italic;
+  line-height: inherit;
+  color: var(--energy-primary);
+}
+
+/* =========================================
+   7. INLINE PROSE ELEMENTS (mark, del, ins, sub, sup, abbr, q, cite, dfn)
+   ========================================= */
+
+// ---------------------------------------------------------------------------
+// 7a. HIGHLIGHTED TEXT
+// ---------------------------------------------------------------------------
+// Physics-differentiated highlight: glass gets energy glow, retro gets inverted.
+
+mark {
+  color: var(--text-main);
+  padding: 0.0625em 0.25em;
+  border-radius: calc(var(--radius-base) * 0.25);
+  background: alpha(var(--energy-primary), 25%);
+  box-decoration-break: clone;
+
+  @include when-light($low-specificity: true) {
+    background: alpha(var(--energy-primary), 15%);
+    color: inherit;
+  }
+
+  @include when-retro($low-specificity: true) {
+    background: var(--energy-primary);
+    color: var(--bg-canvas);
+    border-radius: 0;
+    padding: 0 0.25em;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 7b. DELETED / STRUCK TEXT
+// ---------------------------------------------------------------------------
+
+del,
+s {
+  text-decoration: line-through;
+  text-decoration-color: var(--text-mute);
+  color: var(--text-mute);
+}
+
+// ---------------------------------------------------------------------------
+// 7c. INSERTED TEXT
+// ---------------------------------------------------------------------------
+
+ins {
+  text-decoration: underline;
+  text-decoration-color: var(--color-success);
+  text-decoration-thickness: var(--physics-border-width);
+  text-underline-offset: 0.15em;
+  color: var(--text-dim);
+}
+
+// ---------------------------------------------------------------------------
+// 7d. SUBSCRIPT / SUPERSCRIPT
+// ---------------------------------------------------------------------------
+// Prevents sub/sup from disrupting parent line-height rhythm.
+
+sub,
+sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+// ---------------------------------------------------------------------------
+// 7e. ABBREVIATION
+// ---------------------------------------------------------------------------
+
+abbr[title] {
+  text-decoration: underline dotted var(--text-mute);
+  text-underline-offset: 0.15em;
+  cursor: help;
+}
+
+// ---------------------------------------------------------------------------
+// 7f. INLINE QUOTATION
+// ---------------------------------------------------------------------------
+
+q {
+  font-style: italic;
+  color: var(--text-dim);
+
+  &::before {
+    content: open-quote;
+    color: var(--energy-secondary);
+  }
+
+  &::after {
+    content: close-quote;
+    color: var(--energy-secondary);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 7g. CITATION
+// ---------------------------------------------------------------------------
+
+cite {
+  font-style: italic;
+  color: var(--text-mute);
+}
+
+// ---------------------------------------------------------------------------
+// 7h. DEFINITION TERM
+// ---------------------------------------------------------------------------
+
+dfn {
+  font-style: italic;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-main);
+}

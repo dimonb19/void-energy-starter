@@ -1,0 +1,74 @@
+{
+  "void": {
+    "physics": "glass",
+    "mode": "dark",
+    "tagline": "Default / Cyber",
+    "canvas": "#010020"
+  },
+  "onyx": {
+    "physics": "flat",
+    "mode": "dark",
+    "tagline": "Stealth / Cinema",
+    "canvas": "#000000"
+  },
+  "terminal": {
+    "physics": "retro",
+    "mode": "dark",
+    "tagline": "Hacker / Retro",
+    "canvas": "#050505"
+  },
+  "nebula": {
+    "physics": "glass",
+    "mode": "dark",
+    "tagline": "Synthwave / Cosmic",
+    "canvas": "#0a0014"
+  },
+  "solar": {
+    "physics": "glass",
+    "mode": "dark",
+    "tagline": "Royal / Gold",
+    "canvas": "#120a00"
+  },
+  "overgrowth": {
+    "physics": "glass",
+    "mode": "dark",
+    "tagline": "Nature / Organic",
+    "canvas": "#051a0a"
+  },
+  "velvet": {
+    "physics": "glass",
+    "mode": "dark",
+    "tagline": "Romance / Soft",
+    "canvas": "#1a0510"
+  },
+  "crimson": {
+    "physics": "glass",
+    "mode": "dark",
+    "tagline": "Horror / Intense",
+    "canvas": "#180808"
+  },
+  "paper": {
+    "physics": "flat",
+    "mode": "light",
+    "tagline": "Light / Print",
+    "canvas": "#faeed1"
+  },
+  "focus": {
+    "physics": "flat",
+    "mode": "light",
+    "tagline": "Distraction Free",
+    "canvas": "#ffffff"
+  },
+  "laboratory": {
+    "physics": "flat",
+    "mode": "light",
+    "tagline": "Science / Clinical",
+    "canvas": "#f1f5f9"
+  },
+  "playground": {
+    "physics": "flat",
+    "mode": "light",
+    "tagline": "Playful / Vibrant",
+    "canvas": "#e0f7fa"
+  }
+}

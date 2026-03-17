@@ -1,0 +1,42 @@
+<script lang="ts">
+  import type { HTMLAttributes } from 'svelte/elements';
+  let { class: className, ...rest }: HTMLAttributes<SVGElement> = $props();
+</script>
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 24 24"
+  stroke="currentColor"
+  fill="none"
+  stroke-width="2"
+  class="icon-burger icon {className ?? ''}"
+  aria-hidden="true"
+  {...rest}
+>
+  <line class="top" x1="4" y1="7" x2="20" y2="7" />
+  <line class="middle" x1="4" y1="12" x2="20" y2="12" />
+  <line class="bottom" x1="4" y1="17" x2="20" y2="17" />
+</svg>
+
+<style lang="scss">
+  line {
+    transform-origin: 12px 12px; // void-ignore
+    transition:
+      transform var(--speed-base) var(--ease-spring-snappy),
+      opacity var(--speed-base) var(--ease-spring-snappy);
+  }
+
+  :global(.icon-burger[data-state='active']) {
+    .top {
+      transform: translate(-4px, 3px) rotate(45deg); // void-ignore
+    }
+
+    .middle {
+      opacity: 0;
+    }
+
+    .bottom {
+      transform: translate(-4px, -4px) rotate(-45deg); // void-ignore
+    }
+  }
+</style>

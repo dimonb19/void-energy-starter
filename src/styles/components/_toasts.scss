@@ -1,0 +1,258 @@
+/* Toast region and capsule styles. */
+
+@use '../abstracts' as *;
+
+// ==========================================================================
+// 1. REGION & LAYOUT
+// ==========================================================================
+
+.toast-region {
+  position: fixed;
+  top: calc(var(--space-lg) + var(--safe-top));
+  left: 50%;
+  transform: translateX(-50%);
+
+  // void-ignore (Popover UA reset — column-reverse stacking order requires SCSS-owned flex context)
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: var(--space-xs);
+  pointer-events: none;
+
+  width: 100%;
+  max-width: calc(
+    100vw - max(var(--space-lg), var(--safe-left)) - max(
+        var(--space-lg),
+        var(--safe-right)
+      )
+  );
+  z-index: z('overlay');
+
+  /* Popover reset to avoid UA styles. */
+  &[popover] {
+    // Reset UA geometry.
+    margin: 0; // Popovers default to 'auto' (centered)
+    inset: unset; // Remove default 'inset: 0'
+    border: none;
+    padding: 0;
+
+    // Reset UA canvas.
+    background: transparent; // Popovers default to 'canvas' (white/black)
+    color: inherit;
+
+    // Restore positioning.
+    position: fixed;
+    top: var(--space-lg);
+    left: 50%;
+    transform: translateX(-50%);
+
+    // Allow glow/shadow overflow.
+    overflow: visible;
+  }
+}
+
+// ==========================================================================
+// 2. THE CAPSULE (Surface)
+// ==========================================================================
+
+.toast-message {
+  // Physics (glass capsule).
+  @include surface-raised;
+  pointer-events: auto;
+  cursor: default;
+
+  // Layout (flex items-center justify-center gap-xs) lives on the template via Tailwind.
+
+  // Padding: reduce left to balance icon weight.
+  padding-block: var(--space-xs);
+  padding-right: var(--space-sm);
+  padding-left: calc(var(--space-sm) * 0.8);
+
+  border-radius: var(--radius-full);
+
+  // Map types to accents.
+  --toast-accent: var(--color-system);
+  &[data-type='success'] {
+    --toast-accent: var(--color-success);
+  }
+  &[data-type='error'] {
+    --toast-accent: var(--color-error);
+  }
+  &[data-type='warning'] {
+    --toast-accent: var(--color-premium);
+  }
+  &[data-type='loading'] {
+    --toast-accent: var(--text-mute);
+  }
+
+  // Accent-driven border/glow.
+  border: var(--physics-border-width) solid alpha(var(--toast-accent), 25%);
+  background: blend(var(--bg-surface), var(--toast-accent), 15%);
+
+  // Unified Spring Transitions
+  transition:
+    border-color var(--speed-fast) var(--ease-spring-snappy),
+    box-shadow var(--speed-fast) var(--ease-spring-snappy),
+    background-color var(--speed-fast) var(--ease-spring-snappy);
+
+  // Blur
+  @include glass-blur;
+
+  // Hover feedback — signals that the toast is paused while hovered.
+  &:hover {
+    border-color: alpha(var(--toast-accent), 50%);
+
+    @include when-glass {
+      box-shadow: 0 0 15px -4px alpha(var(--toast-accent), 60%); // void-ignore (Glow Physics)
+    }
+  }
+
+  // Retro override.
+  @include when-retro {
+    &[data-type='loading'] {
+      --toast-accent: var(--text-main);
+    }
+
+    background: blend(var(--bg-canvas), var(--toast-accent), 10%);
+    border: var(--physics-border-width) solid var(--toast-accent);
+
+    &:hover {
+      background: blend(var(--bg-canvas), var(--toast-accent), 15%);
+    }
+  }
+
+  // Flat (light mode) override.
+  @include when-light {
+    background: blend(var(--bg-surface), var(--toast-accent), 5%);
+    color: var(--text-main);
+
+    &:hover {
+      background: blend(var(--bg-surface), var(--toast-accent), 10%);
+    }
+  }
+}
+
+// ==========================================================================
+// 3. ICONS & LOADER (Micro-Indicators)
+// ==========================================================================
+
+.toast-icon {
+  // Layout (flex items-center justify-center shrink-0) lives on the template via Tailwind.
+  font-size: 1.1em; // void-ignore (Emoji optical sizing — relative scale, no token equivalent)
+  line-height: 1;
+  color: var(--toast-accent);
+}
+
+// ==========================================================================
+// 4. CONTENT
+// ==========================================================================
+
+.toast-text {
+  position: relative;
+  z-index: 1;
+  color: var(--text-main);
+}
+
+// ==========================================================================
+// 5. ACTION BUTTON
+// ==========================================================================
+
+.toast-action {
+  @include btn-reset;
+
+  color: var(--toast-accent);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-small);
+  white-space: nowrap;
+
+  border-radius: var(--radius-base);
+  border: var(--physics-border-width) solid transparent;
+  transition:
+    background-color var(--speed-fast) var(--ease-spring-snappy),
+    border-color var(--speed-fast) var(--ease-spring-snappy);
+
+  &:hover {
+    background: alpha(var(--toast-accent), 12%);
+    border-color: alpha(var(--toast-accent), 25%);
+  }
+
+  &:active {
+    filter: brightness(0.85);
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  @include when-retro {
+    border-color: var(--toast-accent);
+
+    &:hover {
+      background: alpha(var(--toast-accent), 20%);
+    }
+
+    &:active {
+      filter: none;
+      transform: none;
+      color: var(--text-main);
+    }
+  }
+
+  @include when-light {
+    &:hover {
+      background: alpha(var(--toast-accent), 10%);
+    }
+  }
+}
+
+// ==========================================================================
+// 6. CLOSE BUTTON (Dismiss via X)
+// ==========================================================================
+
+.toast-close {
+  @include btn-reset;
+
+  color: var(--text-mute);
+  padding: var(--space-xs);
+  border-radius: var(--radius-full);
+
+  transition:
+    color var(--speed-fast) var(--ease-spring-snappy),
+    background-color var(--speed-fast) var(--ease-spring-snappy);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--text-main);
+      background: alpha(var(--text-main), 10%);
+    }
+  }
+
+  &:active {
+    color: var(--text-main);
+    background: alpha(var(--text-main), 15%);
+  }
+
+  &:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  @include when-retro {
+    &:hover {
+      background: transparent;
+      filter: brightness(1.25);
+    }
+
+    &:active {
+      filter: none;
+    }
+  }
+
+  @include when-light {
+    @media (hover: hover) {
+      &:hover {
+        background: alpha(var(--text-main), 8%);
+      }
+    }
+  }
+}

@@ -1,0 +1,185 @@
+/*
+ * Void Engine: Theme generation, physics presets, and global variables.
+ *
+ * This file consolidates all "system-level" concerns:
+ * 1. Global variables (focus-ring, z-layers, breakpoints, container-widths)
+ * 2. Physics presets (glass/flat/retro with derived shadows and surfaces)
+ * 3. Atmosphere generator (emits palette CSS variables per theme)
+ *
+ * ARCHITECTURE NOTE:
+ * Physics presets extend generated tokens from design-tokens.ts with
+ * derived values that cannot be expressed in TypeScript:
+ * - SCSS functions: blend(), alpha() - computed at build time
+ * - CSS variables: var(--bg-surface) - resolved at runtime per theme
+ * - Complex CSS: gradients, box-shadows - need SCSS composition
+ */
+
+@use 'sass:map';
+@use '../config/generated-themes' as generated;
+@use 'functions' as *;
+
+// ==========================================================================
+// 1. GLOBAL VARIABLES
+// ==========================================================================
+
+// Sass maps inherited from generated tokens.
+// Note: $z-layers is in _functions.scss to avoid circular dependency with z()
+$breakpoints: generated.$breakpoints;
+$container-widths: generated.$container-widths;
+
+// Unified focus ring (physics-independent accessibility feature)
+$focus-ring:
+  0 0 0 calc(var(--physics-border-width) * 2) var(--bg-canvas),
+  0 0 0 calc(var(--physics-border-width) * 4) var(--energy-primary);
+
+:root {
+  --focus-ring: #{$focus-ring};
+}
+
+// ==========================================================================
+// 2. PHYSICS PRESETS
+// ==========================================================================
+//
+// DERIVED VALUES DOCUMENTATION
+// These values extend generated tokens with SCSS-computed shadows and surfaces.
+// They cannot be expressed in design-tokens.ts because they require SCSS functions.
+//
+// OPACITY/BLEND RATIONALE:
+// ┌───────────────────┬───────┬─────────────────────────────────────────────┐
+// │ Value             │ %     │ Purpose                                     │
+// ├───────────────────┼───────┼─────────────────────────────────────────────┤
+// │ surface-accent    │ 10%   │ Subtle energy tint on glass surfaces        │
+// │ shadow-sunk       │ 60%   │ High contrast inset for depth perception    │
+// │ shadow-float      │25/35% │ Edge + ambient pool (theme-derived depth)   │
+// │ shadow-lift-depth │ 35%   │ Deep ambient pool (risen surface depth)     │
+// │ shadow-lift-glow  │ 50%   │ Visible but not overwhelming hover glow     │
+// │ shadow-flat-*     │ 5-10% │ Minimal shadows for flat/paper aesthetics   │
+// │ shadow-flat-dark  │25-40% │ Elevated opacity for visibility on dark bg  │
+// │ retro-offset      │ 50%   │ Pixel shadow visibility on CRT-style        │
+// └───────────────────┴───────┴─────────────────────────────────────────────┘
+//
+// To tune these values, edit the percentages below and rebuild.
+// ==========================================================================
+
+$physics-presets: (
+  // Glass: object emits light (cyberpunk, neon, sci-fi).
+  'glass': map.merge(
+      map.get(generated.$generated-physics, 'glass'),
+      (
+        'surface-bg': linear-gradient(
+            to bottom,
+            blend(var(--bg-surface), var(--energy-secondary), 10%) 0%,
+            // 10% = subtle energy tint
+            var(--bg-surface) 100%
+          ),
+        'shadow-sunk': inset 0 2px 4px alpha(var(--bg-canvas), 60%),
+        // 60% = strong depth
+        'shadow-float': (
+            0 1px 3px alpha(var(--bg-canvas), 25%),
+            0 6px 20px -4px alpha(var(--bg-canvas), 35%),
+          ),
+        // 25/35% = edge + ambient pool (theme-derived depth)
+        'shadow-lift': (
+            0 8px 28px -4px alpha(var(--bg-canvas), 35%),
+            0 0 12px alpha(var(--energy-primary), 50%),
+          ),
+        // 35% = deep ambient, 50% = visible glow
+      )
+    ),
+  // Flat: external light casts shadows (paper, clinical, minimal).
+  'flat': map.merge(
+      map.get(generated.$generated-physics, 'flat'),
+      (
+        'surface-bg': var(--bg-surface),
+        'shadow-sunk': inset 0 1px 2px rgba(0, 0, 0, 0.05),
+        // void-ignore 5% = barely visible
+        'shadow-float': 0 1px 3px rgba(0, 0, 0, 0.05),
+        // void-ignore 5% = subtle lift
+        'shadow-lift': 0 4px 12px rgba(0, 0, 0, 0.1),
+        // void-ignore 10% = hover emphasis
+      )
+    ),
+  // Retro: hard edges, no blur (terminal, CRT, pixel art).
+  // Note: shadow-offset comes from generated physics tokens (3px default)
+  'retro': map.merge(
+      map.get(generated.$generated-physics, 'retro'),
+      (
+        'surface-bg': var(--bg-surface),
+        'shadow-sunk': none,
+        // No depth in retro
+        'shadow-float': none,
+        // No soft shadows
+        'shadow-lift': var(--shadow-offset) var(--shadow-offset) 0
+          alpha(var(--energy-secondary), 50%),
+        // 50% = pixel shadow
+      )
+    )
+);
+
+// Emit CSS variables per physics mode.
+@mixin emit-physics {
+  @each $name, $map in $physics-presets {
+    [data-physics='#{$name}'] {
+      @each $key, $val in $map {
+        --#{$key}: #{$val};
+      }
+    }
+  }
+
+  // Flat dark: increase shadow opacity for visibility on dark surfaces.
+  // Flat light values (0.05-0.1) are invisible against dark backgrounds;
+  // these overrides provide visible depth without changing the flat aesthetic.
+  [data-physics='flat'][data-mode='dark'] {
+    --shadow-sunk: inset 0 1px 3px rgba(0, 0, 0, 0.4); // void-ignore
+    --shadow-float:
+      0 1px 4px rgba(0, 0, 0, 0.3), 0 4px 12px -2px rgba(0, 0, 0, 0.25); // void-ignore
+    --shadow-lift:
+      0 4px 16px rgba(0, 0, 0, 0.4), 0 8px 24px -4px rgba(0, 0, 0, 0.3); // void-ignore
+  }
+
+  // Force square borders in retro physics.
+  // Override radius scale tokens (defined in :root) so any usage is square.
+  [data-physics='retro'] {
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+
+    .rounded,
+    .rounded-xs,
+    .rounded-sm,
+    .rounded-md,
+    .rounded-lg,
+    .rounded-xl,
+    .rounded-2xl,
+    .rounded-3xl,
+    .rounded-full {
+      border-radius: 0;
+    }
+  }
+}
+
+// ==========================================================================
+// 3. ATMOSPHERE GENERATOR
+// ==========================================================================
+
+// Generate the palette and mode for an atmosphere.
+@mixin generate-atmosphere($name, $config) {
+  $palette: map.get($config, 'palette');
+  $mode: map.get($config, 'mode'); // 'light' or 'dark'
+
+  @if $palette == null {
+    @warn "No palette provided for atmosphere `#{$name}`.";
+    $palette: ();
+  }
+
+  // Selector: [data-atmosphere="void"]
+  [data-atmosphere='#{$name}'] {
+    color-scheme: if($mode == 'light', light, dark);
+
+    // Output Palette Variables
+    @each $key, $value in $palette {
+      --#{$key}: #{$value};
+    }
+  }
+}

@@ -1,0 +1,28 @@
+/* Command palette result list and item styling. */
+
+@use '../abstracts' as *;
+
+// Results container — focus is managed on the combobox input via
+// aria-activedescendant, so suppress the browser outline on the listbox.
+.palette-results {
+  max-height: 50vh;
+  overflow-y: auto;
+  @include laser-scrollbar;
+  padding: var(--space-xs);
+  outline: none;
+}
+
+// Group label (matches slider-preset label pattern)
+.palette-group-label {
+  display: block;
+  padding: var(--space-sm) var(--space-sm);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+// Hint badges inside result items
+.palette-results kbd {
+  font-size: var(--font-size-caption);
+}

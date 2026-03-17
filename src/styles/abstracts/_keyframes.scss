@@ -1,0 +1,84 @@
+/* Core keyframes for physics-aware animations. */
+
+@use 'functions' as *;
+
+// ==========================================================================
+// KEYFRAMES
+// ==========================================================================
+
+// A. SHIMMER (Loading/Energy)
+// Used by: @include shimmer in _mixins.scss
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+// B. SHIMMER BEAM (Text Shimmer)
+// Used by: @include text-shimmer in _mixins.scss
+// Narrower sweep for focused-beam text effect (250% vs shimmer's 400%)
+@keyframes shimmer-beam {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+// C. ROTATE LASER (Gemini Button)
+// Used by: .btn-cta via @include gemini-laser
+@keyframes rotate-laser {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+// D. ROTATE (Generic)
+// Used by: loading spinners
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// E. STAGGER ENTRY (List item materialization)
+// Used by: Sidebar items, submenu items via --item-index CSS custom property
+// Svelte equivalent: in:materialize{{ delay: i * 50 }} (doesn't work in {#each}{#if} blocks)
+
+// Usage:
+// 1. Set --item-index on each element: style="--item-index: {i}"
+// 2. Apply animation in CSS: animation: stagger-enter var(--speed-base) ... backwards;
+// 3. Calculate delay: animation-delay: calc(var(--item-index, 0) * 50ms);
+@keyframes stagger-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(var(--space-sm)) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// F. BOTTOM NAV MATERIALIZE (Indicator entry)
+// Used by: .bottom-nav-indicator — fade + blur in, no transform.
+@keyframes bottom-nav-materialize {
+  0% {
+    opacity: 0;
+    filter: blur(var(--physics-blur));
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}

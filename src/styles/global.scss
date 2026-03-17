@@ -1,0 +1,83 @@
+/*
+ * Global system entry: imports SCSS layers and enforces the Hybrid Protocol.
+ *
+ * 📚 QUICK REFERENCE: See /CHEAT-SHEET.md for full system documentation
+ */
+
+/* 1. CONFIGURATION & LAYERS (Must be first for Sass Compiler) */
+@use 'abstracts' as *;
+@use 'base'; /* The Laws: Resets, Typography, Theme Injection */
+@use 'components'; /* The Materials: Surfaces, Buttons, Inputs */
+
+/* 2. TAILWIND LAYERS (The Overrides) */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. VIEW TRANSITIONS API (Native Browser Animations) */
+/* Smooth transitions for atmosphere/theme changes using physics tokens */
+::view-transition-group(root) {
+  animation-duration: var(--speed-base);
+  animation-timing-function: var(--ease-spring-gentle);
+}
+
+/* Accessibility: respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01s !important;
+  }
+}
+
+/* Retro physics: instant transitions (terminals had no smooth animations) */
+:where([data-physics='retro']) {
+  ::view-transition-group(root),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0ms;
+  }
+}
+
+/* ==========================================================================
+   📘 VOID ENERGY UI — QUICK REFERENCE
+   ==========================================================================
+
+   This file imports all SCSS layers and enforces the Void Engine protocol.
+
+   📚 COMPLETE DOCUMENTATION:
+   - System Overview:    /CHEAT-SHEET.md
+   - Theme Creation:     /THEME-GUIDE.md
+   - Project Structure:  /README.md
+   - Contributing:       /CONTRIBUTING.md
+
+   ⚠️ CRITICAL RULES (The Hybrid Protocol):
+   1. LAYOUT (Geometry)   → Tailwind (`flex gap-md p-lg`)
+   2. MATERIAL (Physics)  → SCSS (`.surface-raised .btn-cta`)
+   3. STATE (Attributes)  → `[data-state="open"]` NOT `.is-active`
+
+   📝 SCSS NAMING CONVENTION:
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │ .component              → Root element                                  │
+   │ .component-element      → Sub-element (single hyphen, no __)           │
+   │ .component-variant      → Semantic variant                              │
+   │ .component-element-mod  → Sub-element with modifier (no --)            │
+   │                                                                         │
+   │ States via data/ARIA attributes only:                                   │
+   │   ✓ .toggle[aria-checked='true']                                        │
+   │   ✓ .chip[data-type='success']                                          │
+   │   ✗ .toggle--checked, .is-active, .has-error                           │
+   └─────────────────────────────────────────────────────────────────────────┘
+
+   👉 See /CHEAT-SHEET.md for:
+   - Full component catalog (.surface-raised, .surface-sunk, .btn-cta)
+   - Mixin reference with examples (@include surface-raised, @include surface-sunk)
+   - Spacing & responsive breakpoints (xs, sm, md, lg, xl...)
+   - Copy-paste patterns (modals, cards, inputs, buttons)
+
+   👉 See /THEME-GUIDE.md for:
+   - How to add a new theme (step-by-step)
+   - The Palette Contract (layer explanations)
+   - Physics constraints (glass/flat/retro rules)
+
+   ========================================================================== */

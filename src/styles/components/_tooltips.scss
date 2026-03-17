@@ -1,0 +1,77 @@
+/* Tooltip surface styles for floating UI elements. */
+
+@use '../abstracts' as *;
+
+.void-tooltip {
+  // Popover reset.
+  border: none;
+  background: transparent;
+  margin: 0;
+  inset: unset; // Let Floating UI handle positions
+
+  // Base geometry.
+  pointer-events: none; // Allow clicking through the tooltip
+  width: max-content;
+  max-width: var(--tooltip-max-width); // Readability constraint
+
+  // Physics inheritance.
+  @include surface-raised($interactive: false);
+  @include glass-blur;
+  background: var(--bg-surface);
+
+  // Typography (caption level via tokens — no direct base/ import needed).
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  letter-spacing: var(--letter-spacing-caption);
+
+  padding: var(--space-xs) var(--space-sm);
+  text-align: center;
+  color: var(--text-main);
+
+  // Default (closed) state.
+  opacity: 0;
+  transform: scale(0.95); // void-ignore (Motion Physics)
+  filter: blur(calc(var(--physics-blur) / 2));
+
+  // Directional slide per placement side.
+  &[data-side='top'] {
+    transform: translateY(4px) scale(0.95); // void-ignore (Motion Physics)
+  }
+  &[data-side='bottom'] {
+    transform: translateY(-4px) scale(0.95); // void-ignore (Motion Physics)
+  }
+  &[data-side='left'] {
+    transform: translateX(4px) scale(0.95); // void-ignore (Motion Physics)
+  }
+  &[data-side='right'] {
+    transform: translateX(-4px) scale(0.95); // void-ignore (Motion Physics)
+  }
+
+  box-shadow: var(--shadow-lift);
+
+  // Unified Spring Transitions for organic tooltip reveal
+  transition:
+    opacity var(--speed-base) var(--ease-spring-gentle),
+    transform var(--speed-base) var(--ease-spring-gentle),
+    filter var(--speed-base) var(--ease-spring-gentle);
+
+  // Open state.
+  &[data-state='open'] {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+    filter: blur(0);
+  }
+
+  // Retro overrides.
+  @include when-retro {
+    border-radius: 0;
+    transition: none; // Law: Instant motion
+    filter: none; // Law: No blur
+    background: var(--bg-spotlight); // Opaque
+  }
+
+  // Light mode overrides.
+  @include when-light {
+    filter: none;
+  }
+}

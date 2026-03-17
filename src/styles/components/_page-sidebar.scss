@@ -1,0 +1,352 @@
+/* ==========================================================================
+ * PAGE SIDEBAR (Table of Contents)
+ * ==========================================================================
+ *
+ * Sticky navigation sidebar for long-form pages (documentation, library).
+ * Groups items under optional section headers with scroll-tracking.
+ *
+ * ARCHITECTURE:
+ * - .docs-layout             : Block (mobile) / CSS grid (desktop) wrapper
+ * - .docs-main               : Content column (holds .container, PullRefresh, etc.)
+ * - .page-sidebar-header     : Sticky wrapper (toggle bar + sidebar), grid col 1 on desktop
+ * - .page-sidebar-toggle-bar : Mobile bar container (< large-desktop only)
+ * - .page-sidebar-toggle     : Mobile dropdown trigger button
+ * - .page-sidebar            : Dropdown (< large-desktop) / Sticky nav (large-desktop+)
+ * - .page-sidebar-label      : Non-clickable group header (uppercase, muted)
+ * - .page-sidebar-item       : Clickable text link with active left-border accent
+ *
+ * RESPONSIVE TIERS:
+ * - Below large-desktop (< 1440px): Inline dropdown via toggle bar
+ * - Large-desktop (1440px+):        Sticky left column, always visible
+ *
+ * LAYOUT:
+ * .docs-layout is a CSS grid on desktop (15rem sidebar + 1fr content) and
+ * display: block on mobile. On mobile the sidebar collapses via max-height: 0
+ * and expands inline below the toggle bar. On desktop the sidebar uses
+ * position: sticky to stay in view within the grid.
+ *
+ * STATE:
+ * - data-state="active" on .page-sidebar-item for current section
+ * - data-state="open" on .page-sidebar for dropdown visibility (< large-desktop)
+ * - data-state="open" on .page-sidebar-toggle for chevron rotation
+ *
+ * @see /src/components/ui/Sidebar.svelte
+ * ========================================================================== */
+
+@use '../abstracts' as *;
+
+$sidebar-width: 15rem; // void-ignore (Sidebar Width) 240px
+
+// ==========================================================================
+// 1. DOCS LAYOUT (Grid wrapper — sidebar + content)
+// ==========================================================================
+
+.docs-layout {
+  display: block; // Mobile: vertical flow (dropdown + content stack)
+
+  @include respond-up('large-desktop') {
+    display: grid;
+    grid-template-columns: $sidebar-width 1fr;
+  }
+}
+
+.docs-main {
+  min-width: 0; // Prevent grid blowout from wide content
+}
+
+// ==========================================================================
+// 2. SIDEBAR CONTAINER (Dropdown + Sticky)
+// ==========================================================================
+
+.page-sidebar {
+  // --- Shared ---
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  @include laser-scrollbar;
+
+  // --- Dropdown mode (default, below large-desktop) ---
+  max-height: 70vh;
+  overflow: hidden;
+  visibility: hidden;
+  padding-top: calc(
+    (var(--nav-height) + var(--safe-top)) +
+      (var(--nav-height) + var(--safe-top)) * (1 - var(--nav-hidden, 0))
+  );
+  padding-bottom: var(--space-md);
+  transform: translateY(-100%);
+  transition:
+    padding-top var(--speed-base) var(--ease-spring-bounce),
+    visibility var(--speed-base) var(--ease-spring-snappy),
+    transform var(--speed-base) var(--ease-spring-snappy);
+
+  @include mobile-only {
+    transition-timing-function: var(--ease-flow);
+  }
+
+  border-bottom: var(--physics-border-width) solid transparent;
+  box-shadow: none;
+
+  @include when-retro {
+    transition-timing-function: steps(8);
+  }
+
+  @include when-state('open') {
+    visibility: visible;
+    transform: translateY(0);
+    overflow-y: auto;
+    border-bottom-color: var(--border-color);
+    background: var(--bg-surface);
+
+    @include when-glass {
+      @include glass-blur;
+    }
+
+    @include when-light {
+      box-shadow: var(--shadow-float);
+    }
+  }
+
+  // --- Sticky column (large-desktop+) ---
+  @include respond-up('large-desktop') {
+    height: 100dvh;
+    width: $sidebar-width;
+    min-width: $sidebar-width;
+    padding-top: calc(
+      (var(--nav-height) + var(--safe-top)) * (1 - var(--nav-hidden, 0)) +
+        var(--space-md)
+    );
+    padding-bottom: var(--space-md);
+    visibility: visible;
+    max-height: none;
+    transform: none;
+    overflow-y: auto;
+    transition: padding-top var(--speed-base) var(--ease-spring-bounce);
+    background: transparent;
+    border-bottom: none;
+    border-right: none;
+    box-shadow: none;
+
+    // Auto-hide scrollbar — appears on hover only (physics-aware)
+    scrollbar-color: transparent transparent;
+
+    &::-webkit-scrollbar-thumb {
+      background: transparent;
+      transition: background var(--speed-fast) ease;
+    }
+
+    // Glass (default): translucent thumb, glow on thumb-hover
+    &:hover {
+      scrollbar-color: alpha(var(--energy-secondary), 50%) transparent;
+
+      &::-webkit-scrollbar-thumb {
+        background: alpha(var(--energy-secondary), 50%);
+
+        &:hover {
+          background: alpha(var(--energy-primary), 75%);
+          box-shadow: 0 0 6px alpha(var(--energy-primary), 40%); // void-ignore (Glow Radius — matches laser-scrollbar mixin)
+        }
+      }
+    }
+
+    // Flat: solid thumb, subtle track
+    @include when-flat {
+      &:hover {
+        scrollbar-color: var(--energy-secondary) var(--bg-sunk);
+
+        &::-webkit-scrollbar-track {
+          background: var(--bg-sunk);
+          border-radius: var(--radius-full);
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: var(--energy-secondary);
+          border-radius: var(--radius-full);
+
+          &:hover {
+            background: var(--energy-primary);
+            box-shadow: none;
+          }
+        }
+      }
+    }
+
+    // Retro: chunky thumb, visible track border, hard edges
+    @include when-retro {
+      scrollbar-width: auto;
+
+      &::-webkit-scrollbar {
+        width: calc(var(--scrollbar-width) * 2);
+        height: calc(var(--scrollbar-width) * 2);
+      }
+
+      &::-webkit-scrollbar-thumb {
+        transition: none;
+      }
+
+      &:hover {
+        scrollbar-color: var(--energy-primary) var(--bg-sunk);
+
+        &::-webkit-scrollbar-track {
+          background: var(--bg-sunk);
+          border-radius: 0;
+          border: var(--physics-border-width) solid var(--border-color);
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: var(--energy-primary);
+          border-radius: 0;
+
+          &:hover {
+            background: var(--energy-secondary);
+            box-shadow: none;
+          }
+        }
+      }
+    }
+
+    @include when-glass {
+      backdrop-filter: none;
+    }
+  }
+
+  @include when-retro {
+    transition-duration: 0.3s; // void-ignore (Stepped retro transition)
+  }
+}
+
+// ==========================================================================
+// 3. SCRIM (Backdrop overlay for mobile dropdown)
+// ==========================================================================
+
+.page-sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  background: alpha(var(--bg-canvas), 80%);
+  transform: none !important; // override scale and translate from materialize
+
+  @include when-light {
+    background: alpha(var(--text-main), 50%);
+  }
+
+  // Not needed on large-desktop (sidebar is always visible)
+  @include respond-up('large-desktop') {
+    display: none;
+  }
+}
+
+// ==========================================================================
+// 4. SECTION GROUPS
+// ==========================================================================
+
+.page-sidebar-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-caption);
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+// ==========================================================================
+// 5. SIDEBAR ITEMS (Clickable links)
+// ==========================================================================
+
+.page-sidebar-item {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-small);
+  text-decoration: none;
+  color: var(--text-dim);
+  border-left: calc(var(--physics-border-width) * 2) solid transparent;
+  border-radius: var(--radius-base);
+
+  transition:
+    color var(--speed-base) var(--ease-spring-snappy),
+    border-color var(--speed-base) var(--ease-spring-snappy);
+
+  &:hover {
+    color: var(--energy-primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  // Active state — left border accent + primary color + subtle tint
+  @include when-state('active') {
+    color: var(--energy-primary);
+    border-left-color: var(--energy-primary);
+    font-weight: var(--font-weight-semibold);
+    background: alpha(var(--energy-primary), 8%);
+  }
+}
+
+// ==========================================================================
+// 6. SIDEBAR HEADER (Sticky wrapper: toggle bar + dropdown)
+// ==========================================================================
+
+.page-sidebar-header {
+  // Mobile: sticky container for toggle + dropdown
+  position: sticky;
+  top: calc((var(--nav-height) + var(--safe-top)) * (1 - var(--nav-hidden, 0)));
+  z-index: z('sticky');
+  transition: top var(--speed-base) var(--ease-spring-bounce);
+
+  @include mobile-only {
+    transition-timing-function: var(--ease-flow);
+  }
+
+  // Desktop: transparent wrapper, no sticky behavior
+  // (the sidebar inside handles its own sticky positioning)
+  @include respond-up('large-desktop') {
+    position: static;
+    z-index: auto;
+    transition: none;
+  }
+
+  @include when-retro {
+    transition-duration: 0.3s; // void-ignore (Stepped retro transition)
+  }
+}
+
+// ==========================================================================
+// 7. MOBILE TOGGLE BAR (< large-desktop)
+// ==========================================================================
+
+.page-sidebar-toggle-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: z('header');
+  background: var(--bg-surface);
+  border-bottom: var(--physics-border-width) solid var(--border-color);
+
+  button {
+    transform: none !important; // override scale
+    border-radius: 0;
+
+    &[data-state='open'] .icon {
+      transform: rotate(180deg);
+    }
+  }
+
+  @include when-glass {
+    @include glass-blur;
+    background: var(--bg-sunk);
+  }
+
+  @include when-light {
+    box-shadow: var(--shadow-float);
+  }
+
+  // Hidden at large-desktop (sidebar is always visible in grid)
+  @include respond-up('large-desktop') {
+    display: none;
+  }
+
+  @include when-retro {
+    transition-duration: 0s;
+  }
+}

@@ -1,0 +1,47 @@
+---
+import '@styles/global.scss';
+
+import ThemeScript from '@components/core/ThemeScript.astro';
+import UserScript from '@components/core/UserScript.astro';
+import Navigation from '@components/Navigation.svelte';
+import Modal from '@components/Modal.svelte';
+import Toast from '@components/Toast.svelte';
+
+interface Props {
+  title?: string;
+  breadcrumbs?: BreadcrumbItem[];
+}
+
+const { title = 'Void Energy Starter', breadcrumbs } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="Composition-only starter for building Astro and Svelte pages with the shipped Void Energy system."
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="upgrade-insecure-requests"
+    />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <title>{title}</title>
+    <ThemeScript />
+    <UserScript />
+  </head>
+  <body data-has-breadcrumbs={breadcrumbs && breadcrumbs.length > 0 ? '' : undefined}>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <Navigation client:load pathname={Astro.url.pathname} breadcrumbs={breadcrumbs} />
+
+    <main id="main-content" class="min-h-screen">
+      <slot />
+    </main>
+
+    <Modal client:idle />
+    <Toast client:idle />
+  </body>
+</html>

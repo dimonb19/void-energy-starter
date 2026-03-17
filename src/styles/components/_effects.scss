@@ -1,0 +1,47 @@
+@use '../abstracts' as *;
+
+// ==========================================================================
+// EFFECTS — Shimmer utility classes
+// ==========================================================================
+
+// Text shimmer — applies directly to text elements.
+.text-shimmer {
+  @include text-shimmer;
+}
+
+// Container shimmer — overlays shimmer via ::before pseudo-element.
+// The container must have position: relative and overflow: hidden.
+.shimmer-surface {
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    @include shimmer;
+  }
+}
+
+// Skeleton — shape variants for shimmer-surface placeholder elements.
+.skeleton {
+  background: alpha(var(--text-main), 6%);
+  &[data-variant='text'] {
+    width: 100%;
+    height: 1em;
+    border-radius: var(--radius-base);
+  }
+
+  &[data-variant='avatar'] {
+    width: var(--space-xl);
+    height: var(--space-xl);
+    border-radius: var(--radius-full);
+  }
+
+  &[data-variant='card'] {
+    width: 100%;
+    height: var(--space-4xl);
+    border-radius: var(--radius-base);
+  }
+}

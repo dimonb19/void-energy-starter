@@ -1,0 +1,655 @@
+/* Physics mixins for surfaces, text effects, and utilities. */
+
+@use 'sass:map';
+@use 'engine' as *;
+@use 'functions' as *;
+
+// ==========================================================================
+// 1. SURFACES
+// ==========================================================================
+
+// MIXIN: Floating Surface (Cards, Modals)
+// Context: Positive Z-Index. Floats above the void.
+// $interactive: boolean - Set to true ONLY if the element is clickable (Link/Button)
+@mixin surface-raised($interactive: false) {
+  // Texture and geometry.
+  background: var(--surface-bg);
+  border-radius: var(--radius-base);
+  border-style: solid;
+  border-width: var(--physics-border-width);
+
+  // Lighting.
+  border-color: var(--border-color);
+
+  // Shadow switches by physics preset.
+  box-shadow: var(--shadow-float);
+
+  // Unified Spring Motion
+  // All properties use the same spring for cohesive "object" feel
+  transition:
+    transform var(--speed-base) var(--ease-spring-gentle),
+    border-color var(--speed-base) var(--ease-spring-gentle),
+    background-color var(--speed-base) var(--ease-spring-gentle),
+    box-shadow var(--speed-base) var(--ease-spring-gentle);
+
+  // Interaction.
+  @media (hover: hover) {
+    &:hover {
+      @if $interactive {
+        transform: translateY(var(--lift));
+        border-color: var(--energy-primary);
+        box-shadow: var(--shadow-lift);
+      }
+    }
+  }
+}
+
+// MIXIN: Glass Blur (Backdrop Filter)
+// Context: Progressive enhancement for frosted glass effect.
+// Note: Falls back gracefully - if not supported, no blur is applied.
+@mixin glass-blur {
+  @supports (backdrop-filter: blur(1px)) {
+    backdrop-filter: blur(var(--physics-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--physics-blur)) saturate(140%);
+  }
+}
+
+// MIXIN: Sunk Surface (Inputs, Sidebars)
+// Context: Negative Z-Index. Carved into the void.
+@mixin surface-sunk {
+  background: var(--bg-sunk);
+
+  border: var(--physics-border-width) solid var(--border-color);
+  border-radius: var(--radius-base);
+  color: var(--text-main);
+
+  // Unified depth.
+  box-shadow: var(--shadow-sunk);
+
+  // Unified Spring Transitions
+  transition:
+    border-color var(--speed-fast) var(--ease-spring-snappy),
+    box-shadow var(--speed-fast) var(--ease-spring-snappy),
+    outline var(--speed-fast) var(--ease-spring-snappy);
+
+  &:focus-visible {
+    border-color: var(--energy-primary);
+    box-shadow: var(--focus-ring);
+  }
+}
+
+// ==========================================================================
+// 2. ANIMATIONS
+// ==========================================================================
+
+// MIXIN: Atmospheric Shimmer
+// Usage: Include in any element that acts as a loading skeleton.
+@mixin shimmer {
+  background-size: 400% 100%;
+  animation: shimmer 4s infinite linear;
+
+  // Default Void gradient.
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 30%,
+    alpha(var(--energy-primary), 15%) 50%,
+    transparent 70%,
+    transparent 100%
+  );
+
+  // Light mode override.
+  @include when-light($low-specificity: true) {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 35%,
+      rgba(255, 255, 255, 0.6) 50%,
+      // void-ignore (Shimmer Physics)
+      transparent 65%,
+      transparent 100%
+    );
+  }
+
+  // Retro override.
+  @include when-retro($low-specificity: true) {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 44%,
+      var(--border-color) 44%,
+      var(--border-color) 46%,
+      transparent 46%,
+      transparent 100%
+    );
+  }
+}
+
+// MIXIN: Text Shimmer (Focused Beam)
+// Usage: Include on any text element to create a text-clipped loading shimmer.
+// Two-layer technique: solid muted base + narrow bright beam sweep.
+// The base layer keeps text readable; the beam creates the "shine" effect.
+@mixin text-shimmer {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  background-size: 250% 100%;
+  animation: shimmer-beam 2s linear infinite;
+
+  // Dark mode default: muted text base + text-main beam.
+  background-image:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 45%,
+      var(--text-main) 50%,
+      transparent 55%,
+      transparent 100%
+    ),
+    linear-gradient(var(--text-mute), var(--text-mute));
+
+  // Light mode: main-color beam over muted base.
+  @include when-light($low-specificity: true) {
+    background-image:
+      linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent 45%,
+        var(--text-main) 50%,
+        transparent 55%,
+        transparent 100%
+      ),
+      linear-gradient(var(--text-mute), var(--text-mute));
+  }
+
+  // Retro: sharp scan-line beam over muted base.
+  @include when-retro($low-specificity: true) {
+    background-image:
+      linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent 48%,
+        var(--energy-primary) 48%,
+        var(--energy-primary) 52%,
+        transparent 52%,
+        transparent 100%
+      ),
+      linear-gradient(var(--text-mute), var(--text-mute));
+  }
+}
+
+// MIXIN: Navlink Loading
+// Usage: Include on any interactive element that navigates (buttons, anchors,
+// tabs, surfaces). Paired with the `use:navlink` Svelte action which sets
+// `data-status="loading"` + `aria-busy="true"` on click.
+// 150ms animation-delay avoids flicker on fast navigations.
+//
+// Modes:
+//   @include navlink-loading;          → Surface shimmer (::after overlay).
+//                                        Element MUST have position: relative + overflow: hidden.
+//   @include navlink-loading(text);    → Text shimmer (background-clip: text).
+//                                        Safe for elements that use ::after (e.g. .link laser line).
+@mixin navlink-loading($mode: surface) {
+  @include when-state('loading') {
+    pointer-events: none;
+
+    @if $mode == text {
+      @include text-shimmer;
+      animation-delay: 150ms;
+      animation-fill-mode: backwards;
+    } @else {
+      color: var(--text-mute);
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        @include shimmer;
+        animation-delay: 150ms;
+        animation-fill-mode: backwards;
+      }
+    }
+  }
+}
+
+// Standard Entry Transition (The "Cyber Slide")
+// Usage: @include entry-transition;
+//
+// SPRING PHYSICS: Uses easeSpringGentle for organic entry feel.
+// The overshoot creates the "settling into place" effect Apple pioneered.
+@mixin entry-transition($duration: var(--speed-base), $delay: 0s) {
+  will-change: transform, opacity, filter;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+
+  @media (prefers-reduced-motion: no-preference) {
+    // Use spring easing for organic feel
+    transition:
+      opacity $duration var(--ease-spring-gentle) $delay,
+      transform $duration var(--ease-spring-gentle) $delay,
+      filter $duration var(--ease-spring-gentle) $delay;
+
+    @starting-style {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98); // void-ignore (Motion Physics)
+      filter: blur(var(--physics-blur));
+    }
+  }
+}
+
+// ==========================================================================
+// 3. STATE MANAGEMENT MIXINS (Strict Protocol)
+// ==========================================================================
+//
+// Use data attributes and ARIA states instead of utility classes.
+// This ensures state is accessible and visible to CSS selectors.
+//
+// NAMING CONVENTION: when-state($state) matches when-physics() and when-mode()
+//
+// Available states:
+// - 'active'   : Toggles, Tabs, Selections (aria-pressed, aria-selected, etc.)
+// - 'open'     : Dropdowns, Tooltips, Dialogs (data-state="open", [open])
+// - 'loading'  : Network operations (aria-busy, data-status="loading")
+// - 'disabled' : Non-interactive elements (disabled, aria-disabled)
+// - 'error'    : Validation errors (aria-invalid, data-state="error")
+//
+// ==========================================================================
+
+/// Universal state selector mixin.
+///
+/// @param {String} $state - State name: 'active', 'open', 'loading', 'disabled', 'error'
+/// @content Styles to apply when state is active
+///
+/// @example scss
+///   .btn {
+///     @include when-state('active') {
+///       background: var(--energy-primary);
+///     }
+///   }
+///
+@mixin when-state($state) {
+  @if $state == 'active' {
+    &[aria-pressed='true'],
+    &[aria-selected='true'],
+    &[aria-checked='true'],
+    &[data-state='active'] {
+      @content;
+    }
+  } @else if $state == 'open' {
+    &[data-state='open'],
+    &[open] {
+      @content;
+    }
+  } @else if $state == 'loading' {
+    &[aria-busy='true'],
+    &[data-status='loading'] {
+      @content;
+    }
+  } @else if $state == 'disabled' {
+    &:disabled,
+    &[aria-disabled='true'],
+    &[data-state='disabled'] {
+      @content;
+    }
+  } @else if $state == 'error' {
+    &[aria-invalid='true'],
+    &[data-state='error'] {
+      @content;
+    }
+  } @else if $state == 'met' {
+    &[data-state='met'] {
+      @content;
+    }
+  } @else {
+    @warn "Unknown state '#{$state}'. Available: active, open, loading, disabled, error, met";
+  }
+}
+
+// ==========================================================================
+// 4. SCROLLBAR
+// ==========================================================================
+
+@mixin laser-scrollbar() {
+  // Glass (default): translucent thumb, transparent track, glow on hover
+  scrollbar-width: thin;
+  scrollbar-color: alpha(var(--energy-secondary), 50%) transparent;
+
+  &::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: alpha(var(--energy-secondary), 50%);
+    border-radius: var(--radius-full);
+
+    &:hover {
+      background: alpha(var(--energy-primary), 75%);
+      box-shadow: 0 0 6px alpha(var(--energy-primary), 40%); // void-ignore (Glow Physics)
+    }
+  }
+
+  // Flat: solid minimal thumb, subtle track, no glow
+  @include when-flat {
+    scrollbar-color: var(--energy-secondary) var(--bg-sunk);
+
+    &::-webkit-scrollbar-track {
+      background: var(--bg-sunk);
+      border-radius: var(--radius-full);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--energy-secondary);
+      border-radius: var(--radius-full);
+
+      &:hover {
+        background: var(--energy-primary);
+        box-shadow: none;
+      }
+    }
+  }
+
+  // Retro: chunky thumb, visible track border, hard edges
+  @include when-retro {
+    scrollbar-width: auto;
+    scrollbar-color: var(--energy-primary) var(--bg-sunk);
+
+    &::-webkit-scrollbar {
+      width: calc(var(--scrollbar-width) * 2);
+      height: calc(var(--scrollbar-width) * 2);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--bg-sunk);
+      border-radius: 0;
+      border: var(--physics-border-width) solid var(--border-color);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--energy-primary);
+      border-radius: 0;
+
+      &:hover {
+        background: var(--energy-secondary);
+        box-shadow: none;
+      }
+    }
+  }
+
+  // Forced Colors (HCM): defer to system scrollbar colors
+  @media (forced-colors: active) {
+    scrollbar-color: ButtonText Canvas;
+
+    &::-webkit-scrollbar-track {
+      background: Canvas;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ButtonText;
+      box-shadow: none;
+
+      &:hover {
+        background: Highlight;
+      }
+    }
+  }
+}
+
+// ==========================================================================
+// 5. TEXT UTILITIES
+// ==========================================================================
+
+// MIXIN: Truncate
+// Usage: @include text-truncate(1) for single line
+// Usage: @include text-truncate(3) for multi-line narrative
+@mixin text-truncate($lines: 1) {
+  text-overflow: ellipsis;
+
+  @if $lines == 1 {
+    overflow: hidden;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    overflow: hidden;
+    overflow: clip;
+    overflow-clip-margin: content-box;
+  }
+}
+
+// MIXIN: Force wrap
+// Usage: For API keys, hashes, or user-generated "gibberish"
+@mixin text-wrap-force {
+  overflow-wrap: anywhere;
+
+  word-break: break-word;
+}
+
+// ==========================================================================
+// 6. RESPONSIVE BREAKPOINTS
+// ==========================================================================
+
+@mixin respond-up($breakpoint) {
+  @if map.has-key($breakpoints, $breakpoint) {
+    @media (min-width: map.get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$breakpoint}` not found.";
+  }
+}
+
+@mixin mobile-only {
+  @media (max-width: map.get($breakpoints, 'tablet')) {
+    @content;
+  }
+}
+
+// ==========================================================================
+// 6b. CONTAINER QUERIES
+// ==========================================================================
+//
+// CSS @container query mixin for component-scoped responsive styles.
+// Requires container-type on a parent ancestor.
+//
+// PREREQUISITE:
+//   SCSS:     container-type: inline-size;
+//   Tailwind: class="@container"
+//
+// BREAKPOINTS (smaller than viewport — components resize before the page does):
+//   sm  → 320px  Component minimum (icon grids, narrow chips)
+//   md  → 480px  Small component (basic card layouts)
+//   lg  → 640px  Medium component (two-column form grids)
+//   xl  → 800px  Large component (complex multi-column layouts)
+//
+// USAGE IN SCSS:
+//   .my-card {
+//     flex-direction: column;
+//     @include container-up('md') {
+//       flex-direction: row; // void-hybrid-exception: container layout
+//     }
+//   }
+//
+// USAGE IN TAILWIND:
+//   <div class="@container">
+//     <div class="flex flex-col @md:flex-row gap-md">...</div>
+//   </div>
+//
+// NOTE: This is infrastructure only — no components use container queries yet.
+
+$container-breakpoints: (
+  'sm': 320px,
+  'md': 480px,
+  'lg': 640px,
+  'xl': 800px,
+);
+
+@mixin container-up($breakpoint) {
+  @if map.has-key($container-breakpoints, $breakpoint) {
+    @container (min-width: #{map.get($container-breakpoints, $breakpoint)}) {
+      @content;
+    }
+  } @else {
+    @warn "Container breakpoint `#{$breakpoint}` not found. Available: #{map.keys($container-breakpoints)}";
+  }
+}
+
+// ==========================================================================
+// 7. PHYSICS & MODE OVERRIDES
+// ==========================================================================
+// Centralized mixins for physics and mode-specific styling.
+// Use these instead of raw @at-root [data-physics='...'] & patterns.
+
+/// Apply styles when a specific physics preset is active.
+/// @param {String} $physics - The physics preset name ('glass', 'flat', 'retro')
+/// @param {Boolean} $low-specificity [false] - Use :where() for lower specificity
+/// @content The styles to apply when this physics is active
+@mixin when-physics($physics, $low-specificity: false) {
+  @if $low-specificity {
+    @at-root :where([data-physics='#{$physics}']) & {
+      @content;
+    }
+  } @else {
+    @at-root [data-physics='#{$physics}'] & {
+      @content;
+    }
+  }
+}
+
+/// Apply styles when a specific mode (light/dark) is active.
+/// @param {String} $mode - The mode name ('light', 'dark')
+/// @param {Boolean} $low-specificity [false] - Use :where() for lower specificity
+/// @content The styles to apply when this mode is active
+@mixin when-mode($mode, $low-specificity: false) {
+  @if $low-specificity {
+    @at-root :where([data-mode='#{$mode}']) & {
+      @content;
+    }
+  } @else {
+    @at-root [data-mode='#{$mode}'] & {
+      @content;
+    }
+  }
+}
+
+/// Apply styles for a specific physics + mode combination.
+/// Use sparingly - most overrides should be physics OR mode, not both.
+/// @param {String} $physics - The physics preset name
+/// @param {String} $mode - The mode name
+/// @content The styles to apply
+@mixin when-physics-mode($physics, $mode) {
+  @at-root [data-physics='#{$physics}'][data-mode='#{$mode}'] & {
+    @content;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Convenience Aliases
+// ---------------------------------------------------------------------------
+
+@mixin when-retro($low-specificity: false) {
+  @include when-physics('retro', $low-specificity) {
+    @content;
+  }
+}
+
+@mixin when-glass($low-specificity: false) {
+  @include when-physics('glass', $low-specificity) {
+    @content;
+  }
+}
+
+@mixin when-flat($low-specificity: false) {
+  @include when-physics('flat', $low-specificity) {
+    @content;
+  }
+}
+
+@mixin when-light($low-specificity: false) {
+  @include when-mode('light', $low-specificity) {
+    @content;
+  }
+}
+
+@mixin when-dark($low-specificity: false) {
+  @include when-mode('dark', $low-specificity) {
+    @content;
+  }
+}
+
+// ==========================================================================
+// 8. BUTTON RESET & BASE
+// ==========================================================================
+
+/// Naked button reset for unstyled buttons.
+/// Removes all default button styling while preserving accessibility.
+/// Usage: @include btn-reset;
+///
+/// @example scss
+///   .custom-button {
+///     @include btn-reset;
+///     // Add custom styles
+///   }
+///
+@mixin btn-reset {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  min-width: unset;
+  min-height: unset;
+  display: inline-flex;
+}
+
+/// Structural button base — sizing, typography, and layout without any
+/// physics, interaction states, or semantic color variants.
+/// Use for CSS-only elements (e.g., .btn-fake) that need to look like
+/// a button but have no Svelte template to receive Tailwind classes.
+///
+/// void-exception: Layout properties (display, gap, padding) live in this
+/// mixin because consumers are CSS-only classes without template access.
+/// Mirrors the .btn class which uses the same pattern.
+///
+/// @example scss
+///   .btn-fake {
+///     @include btn-base;
+///     background: transparent;
+///     border: none;
+///     color: var(--energy-primary);
+///   }
+///
+@mixin btn-base {
+  // void-exception: CSS-only structural base (no Tailwind template access)
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--space-sm) - var(--space-xs) / 2);
+  min-height: var(--control-height);
+  padding-block: 0;
+  padding-inline: calc(var(--space-sm) + var(--space-xs) / 2);
+
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-small);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  text-decoration: none;
+
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  user-select: none;
+}

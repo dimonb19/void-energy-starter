@@ -1,17 +1,46 @@
 {
-  "name": "",
+  "name": "void-energy-starter",
   "type": "module",
   "version": "0.0.1",
-  "engines": {
-    "node": ">=22.12.0"
-  },
+  "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "dev": "tsx scripts/local-dev.ts",
+    "build": "npm run build:tokens && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "build:tokens": "tsx scripts/generate-tokens.ts",
+    "baseline:update": "tsx scripts/update-starter-baseline.ts",
+    "scan": "tsx scripts/scan-physics.ts",
+    "check:registry": "tsx scripts/check-component-registry.ts",
+    "check": "npm run check:registry && astro check",
+    "validate": "tsx scripts/validate.ts",
+    "test": "vitest run",
+    "format": "prettier --write ."
   },
   "dependencies": {
-    "astro": "^6.0.5"
+    "@astrojs/svelte": "^7.2.2",
+    "@astrojs/tailwind": "^5.1.0",
+    "@floating-ui/dom": "^1.7.4",
+    "@lucide/svelte": "^0.564.0",
+    "astro": "^5.16.0",
+    "svelte": "^5.43.14",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@sveltejs/vite-plugin-svelte": "^6.2.4",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@testing-library/svelte": "^5.3.1",
+    "autoprefixer": "^10.4.23",
+    "jsdom": "^28.1.0",
+    "postcss": "^8.5.6",
+    "prettier": "3.6.2",
+    "prettier-plugin-svelte": "3.4.0",
+    "sass-embedded": "^1.93.3",
+    "svelte-check": "^4.1.0",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.0.18"
   }
 }

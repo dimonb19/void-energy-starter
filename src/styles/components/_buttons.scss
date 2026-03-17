@@ -1,0 +1,604 @@
+/* ==========================================================================
+ * BUTTON SYSTEM
+ * ==========================================================================
+ *
+ * Comprehensive button styling with physics-aware states.
+ *
+ * ARCHITECTURE:
+ * - Section 1: Base Button - Layout, typography, physics, interaction states
+ * - Section 2: CTA (Gemini Laser) - Animated gradient border variant
+ * - Section 2b: Ghost - Text-only action button (no surface/border at rest)
+ * - Section 3: Semantic Variants - Premium, system, signal, alert colors
+ * - Section 4: Active State - Toggle/selection styling
+ * - Section 5: Utilities - btn-void (reset), btn-icon (circular)
+ *
+ * CLASSES:
+ * - .btn         : Base button (also applies to <button> elements)
+ * - .btn-cta     : Call-to-action with animated laser border
+ * - .btn-premium : Gold/orange semantic variant
+ * - .btn-system  : Purple semantic variant
+ * - .btn-success  : Green/success semantic variant
+ * - .btn-error   : Red/error semantic variant
+ * - .btn-ghost   : Text-only button (no surface/border at rest)
+ * - .btn-void    : Reset class for unstyled buttons
+ * - .btn-icon    : Circular icon-only button
+ *
+ * PHYSICS BEHAVIOR:
+ * - Glass: Glowing hover states, blur effects, gradient CTA
+ * - Flat:  Subtle shadows, no glow, no gradient animation
+ * - Retro: Hard borders, instant transitions, pixel shadows
+ *
+ * DESIGN NOTES:
+ * - Resting state carries potential energy through glass/border treatments
+ * - Hover/Focus converts to kinetic energy via glow, lift, and brightness
+ * - Active press uses 50ms micro-transition (instant on touch/retro)
+ *
+ * @see /CHEAT-SHEET.md for usage examples
+ * ==========================================================================
+ */
+
+@use '../abstracts' as *;
+
+// ==========================================================================
+// BUTTON-SPECIFIC MIXINS
+// ==========================================================================
+// These mixins are only used by buttons, so they live here with their
+// component rather than in abstracts/_mixins.scss.
+// ==========================================================================
+
+// MIXIN: Gemini Laser (CTA Button Effect)
+// Creates an animated rotating gradient border for call-to-action buttons.
+// The gradient rotates continuously, creating a "laser beam" effect around
+// the button edge.
+// --------------------------------------------------------------------------
+@mixin _gemini-laser {
+  position: relative;
+  isolation: isolate; // Force stacking context on the button itself.
+  background: transparent;
+  border: none;
+  overflow: hidden;
+  z-index: z('base');
+  color: var(--text-main);
+
+  // Parent radius clips the beam and keeps the gradient contained.
+  border-radius: var(--radius-full);
+
+  // Rotating beam.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1250%;
+    height: 1250%;
+    border-radius: 50%;
+
+    // Tail gradient.
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      var(--energy-secondary) 100deg,
+      var(--energy-primary) 160deg,
+      var(--energy-primary) 200deg,
+      var(--energy-secondary) 260deg,
+      transparent 360deg
+    );
+
+    transition: background-color var(--speed-base) var(--ease-spring-gentle);
+
+    will-change: transform;
+    transform: translate(-50%, -50%);
+    animation: rotate-laser 4s linear infinite;
+    z-index: -2;
+
+    // Retro override: disable animated gradient entirely
+    // Terminal UIs didn't have rotating gradients - use static borders instead
+    @include when-retro($low-specificity: true) {
+      display: none;
+    }
+  }
+
+  // Inner mask.
+  &::after {
+    content: '';
+    position: absolute;
+    inset: var(--physics-border-width);
+
+    background: var(--bg-canvas);
+
+    z-index: -1;
+    border-radius: var(--radius-full);
+
+    // Retro override: disable inner mask (not needed without gradient)
+    @include when-retro($low-specificity: true) {
+      display: none;
+    }
+  }
+
+  // Hover surge.
+  @media (hover: hover) {
+    &:hover::before {
+      background-color: var(--energy-primary);
+      animation-play-state: paused;
+    }
+
+    &:hover::after {
+      background: blend(var(--bg-canvas), var(--energy-primary), 6%);
+    }
+  }
+}
+
+// MIXIN: Button Variant
+// Creates semantic button variants with physics-aware hover states.
+// Usage: @include _btn-variant(var(--color-premium));
+// --------------------------------------------------------------------------
+@mixin _btn-variant($color-var) {
+  border-color: alpha($color-var, 50%);
+  background: alpha($color-var, 10%);
+  color: $color-var;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: $color-var;
+      background: alpha($color-var, 15%);
+      color: var(--text-main);
+
+      box-shadow: var(--shadow-lift);
+
+      // Only apply colored glow if we are in Glass Physics
+      @include when-glass {
+        box-shadow: 0 0 15px alpha($color-var, 40%); // void-ignore (Glow Physics)
+        text-shadow: 0 0 10px alpha($color-var, 60%); // void-ignore (Glow Physics)
+      }
+
+      @include when-light {
+        color: $color-var; // Keep text readable in light mode
+        text-shadow: none;
+      }
+
+      @include when-retro {
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0px
+          alpha($color-var, 50%);
+      }
+    }
+  }
+
+  &:active:not(:disabled) {
+    transition-duration: 50ms; // void-ignore (Micro-feedback)
+
+    @media (pointer: coarse) {
+      transition-duration: 0ms;
+    }
+
+    @include when-retro {
+      transition-duration: 0ms;
+    }
+
+    filter: brightness(0.85);
+    transform: scale(0.96);
+    border-color: blend($color-var, var(--energy-secondary), 12%);
+    background: alpha($color-var, 25%);
+  }
+
+  @include when-state('active') {
+    border-color: $color-var;
+    background: alpha($color-var, 20%);
+    color: var(--text-main);
+    box-shadow: var(--shadow-lift);
+
+    @include when-glass {
+      box-shadow: 0 0 12px alpha($color-var, 35%); // void-ignore (Glow Physics)
+    }
+
+    @include when-light {
+      background: alpha($color-var, 15%);
+      color: $color-var;
+    }
+
+    @include when-retro {
+      background: alpha($color-var, 25%);
+      box-shadow: var(--shadow-offset) var(--shadow-offset) 0px
+        alpha($color-var, 40%);
+    }
+  }
+}
+
+// MIXIN: Ghost Button Variant
+// Creates semantic ghost variants — text color only, no surface at rest.
+// Usage: @include _btn-ghost-variant(var(--color-error));
+// --------------------------------------------------------------------------
+@mixin _btn-ghost-variant($color-var) {
+  color: $color-var;
+  background: transparent;
+  border-color: transparent;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: alpha($color-var, 8%);
+      color: $color-var;
+      border-color: transparent;
+      box-shadow: none;
+
+      @include when-retro {
+        background: transparent;
+        text-decoration: underline;
+        text-underline-offset: var(--space-xs);
+      }
+    }
+  }
+
+  &:active:not(:disabled) {
+    background: alpha($color-var, 12%);
+    border-color: transparent;
+
+    @include when-retro {
+      background: transparent;
+    }
+  }
+}
+
+// ==========================================================================
+// BUTTONS
+// ==========================================================================
+
+// 1. BASE BUTTON & VARIANTS
+// --------------------------------------------------------------------------
+// We define everything inside this block to ensure specificity works correctly.
+button:not(.btn-void, .btn-icon, .tabs-trigger),
+.btn {
+  // void-exception: Global element selector + calc() token gaps — no template access.
+  // --- A. Layout & Accessibility ---
+  min-height: var(--control-height);
+  min-width: var(--control-height);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--space-sm) - var(--space-xs) / 2);
+  padding-block: 0;
+  padding-inline: calc(var(--space-sm) + var(--space-xs) / 2);
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; // Prevents iOS long-press context menu
+
+  // --- B. Typography ---
+  font-family: var(--font-body);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-small);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-main);
+  text-decoration: none;
+  line-height: 1;
+
+  // --- C. The Physics (Glass) ---
+  background: var(--bg-surface);
+
+  // Borders rely on the physics engine variables
+  border: var(--physics-border-width) solid var(--border-color);
+  border-radius: var(--radius-base);
+
+  // Unified Spring Transitions
+  // Apple's Rule: "One object, one motion curve."
+  // All properties that change together should use the same spring easing
+  // to feel like a single cohesive object.
+  transition:
+    color var(--speed-fast) var(--ease-spring-snappy),
+    background-color var(--speed-fast) var(--ease-spring-snappy),
+    border-color var(--speed-fast) var(--ease-spring-snappy),
+    box-shadow var(--speed-fast) var(--ease-spring-snappy),
+    transform var(--speed-fast) var(--ease-spring-snappy),
+    filter var(--speed-fast) var(--ease-spring-snappy);
+
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+
+  @include when-light {
+    background: blend(var(--bg-surface), var(--energy-primary), 5%);
+  }
+
+  // --- D. Interaction States ---
+
+  &:focus-visible {
+    outline: none;
+    border-color: var(--energy-primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled, [aria-disabled='true']) {
+      background: blend(var(--bg-surface), var(--energy-secondary), 8%);
+      border-color: var(--energy-primary);
+      transform: translateY(var(--lift)) scale(var(--scale, 1));
+      color: var(--text-main);
+      box-shadow: var(--shadow-lift);
+    }
+  }
+
+  &:active:not(:disabled, [aria-disabled='true']) {
+    // MICRO-TRANSITION: Soft press for mouse, instant for touch/retro.
+    transition-duration: 50ms; // void-ignore (Micro-feedback)
+
+    @media (pointer: coarse) {
+      transition-duration: 0ms;
+    }
+
+    @include when-retro {
+      transition-duration: 0ms;
+    }
+
+    // STRONGER VISUAL CHANGE: More perceptible on quick taps.
+    filter: brightness(0.85);
+    transform: scale(0.96);
+    background: blend(var(--bg-surface), var(--energy-secondary), 18%);
+    border-color: var(--energy-secondary);
+  }
+
+  &:disabled {
+    background: alpha(var(--text-mute), 0.1);
+    border-color: alpha(var(--text-mute), 0.25);
+    color: var(--text-mute);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  @include navlink-loading;
+
+  // ========================================================================
+  // 2. THE GEMINI LASER (CTA)
+  // Nested to override Base Styles properly
+  // ========================================================================
+  &.btn-cta:not(:disabled) {
+    @include _gemini-laser;
+
+    color: var(--energy-primary);
+    font-weight: var(--font-weight-extrabold);
+    min-height: var(--space-xl);
+    padding-inline: var(--space-md);
+
+    border-radius: var(--radius-full);
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        // Reset base button hover effects that clash
+        background: transparent;
+        border: none;
+        color: var(--text-main);
+      }
+    }
+
+    // Retro Physics Override: Static double border instead of animated gradient
+    // Terminal UIs (DOS/Unix TUI) used double borders for emphasis, not animations
+    // Note: gemini-laser mixin already disables ::before/::after in retro mode
+    @include when-retro {
+      // Apply double border using border + outline (uses physics tokens)
+      border: var(--physics-border-width) solid var(--energy-primary);
+      outline: var(--physics-border-width) solid var(--energy-primary);
+      outline-offset: calc(
+        var(--physics-border-width) * -2
+      ); // Positions outline inside border for double-frame effect
+      background: var(--bg-surface);
+
+      // Hover state: Swap colors instead of transform
+      @media (hover: hover) {
+        &:hover:not(:disabled) {
+          color: var(--bg-canvas);
+          border: var(--physics-border-width) solid var(--energy-primary);
+          background: var(--energy-primary);
+        }
+      }
+
+      // Active state: Inverted terminal look
+      &:active:not(:disabled) {
+        transition-duration: 50ms; // void-ignore (Micro-feedback)
+
+        @media (pointer: coarse) {
+          transition-duration: 0ms;
+        }
+
+        transform: none;
+        background: var(--energy-primary);
+        color: var(--bg-canvas);
+        border-color: var(--energy-primary);
+        outline-color: var(--energy-primary);
+      }
+    }
+  }
+
+  // ========================================================================
+  // 2b. GHOST VARIANT (Text-Only Action Button)
+  // No background, no border at rest. Recognizable as a button via
+  // uppercase type treatment and hover feedback. Use for secondary/tertiary
+  // actions: Cancel, Dismiss, Skip, "Learn more."
+  //
+  // Composition: Works with semantic variants for colored ghosts:
+  //   <button class="btn-ghost btn-error">Delete</button>
+  // ========================================================================
+  &.btn-ghost {
+    // --- A. Strip the Surface ---
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--text-dim);
+
+    @include when-light {
+      background: transparent;
+    }
+
+    // --- B. Hover: Reveal Subtle Surface ---
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        background: alpha(var(--energy-secondary), 8%);
+        border-color: transparent;
+        color: var(--energy-primary);
+        box-shadow: none;
+        transform: none; // Ghost stays grounded (no lift)
+
+        @include when-light {
+          background: alpha(var(--energy-primary), 8%);
+        }
+
+        @include when-retro {
+          background: transparent;
+          color: var(--energy-primary);
+          text-decoration: underline;
+          text-underline-offset: var(--space-xs);
+        }
+      }
+    }
+
+    // --- C. Active Press ---
+    &:active:not(:disabled) {
+      transition-duration: 50ms; // void-ignore (Micro-feedback)
+
+      @media (pointer: coarse) {
+        transition-duration: 0ms;
+      }
+
+      @include when-retro {
+        transition-duration: 0ms;
+      }
+
+      filter: brightness(0.85);
+      transform: scale(0.96);
+      background: alpha(var(--energy-secondary), 12%);
+
+      @include when-light {
+        background: alpha(var(--energy-primary), 12%);
+      }
+
+      @include when-retro {
+        background: transparent;
+        filter: none;
+        transform: none;
+        color: var(--text-main);
+      }
+    }
+
+    // --- D. Focus: Keep Ring, Hide Border ---
+    &:focus-visible {
+      border-color: transparent;
+      box-shadow: var(--focus-ring);
+    }
+
+    // --- E. Disabled ---
+    &:disabled {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text-mute);
+      box-shadow: none;
+    }
+
+    // --- F. Toggle/Selected State ---
+    @include when-state('active') {
+      color: var(--energy-primary);
+      background: alpha(var(--energy-primary), 8%);
+      border-color: transparent;
+      box-shadow: none;
+
+      @include when-light {
+        background: alpha(var(--energy-primary), 6%);
+      }
+
+      @include when-retro {
+        background: transparent;
+        text-decoration: underline;
+        text-underline-offset: var(--space-xs);
+      }
+    }
+
+    // --- G. Semantic Ghost Variants ---
+    &.btn-premium:not(:disabled) {
+      @include _btn-ghost-variant(var(--color-premium));
+    }
+    &.btn-system:not(:disabled) {
+      @include _btn-ghost-variant(var(--color-system));
+    }
+    &.btn-success:not(:disabled) {
+      @include _btn-ghost-variant(var(--color-success));
+    }
+    &.btn-error:not(:disabled) {
+      @include _btn-ghost-variant(var(--color-error));
+    }
+  }
+
+  // ========================================================================
+  // 3. SEMANTIC VARIANTS
+  // Uses _btn-variant mixin defined above
+  // ========================================================================
+
+  &.btn-premium:not(:disabled, .btn-ghost) {
+    @include _btn-variant(var(--color-premium));
+  }
+  &.btn-system:not(:disabled, .btn-ghost) {
+    @include _btn-variant(var(--color-system));
+  }
+  &.btn-success:not(:disabled, .btn-ghost) {
+    @include _btn-variant(var(--color-success));
+  }
+  &.btn-error:not(:disabled, .btn-ghost) {
+    @include _btn-variant(var(--color-error));
+  }
+
+  // ========================================================================
+  // ACTIVE STATE (Toggle / Selected)
+  // Usage: <button class="btn" aria-pressed="true">
+  // ========================================================================
+  @include when-state('active') {
+    // 1. Solid Fill (The "Lit" Look)
+    background: alpha(var(--energy-primary), 15%);
+    border-color: var(--energy-primary);
+
+    // 2. Contrast Text
+    color: var(--text-main);
+
+    // 3. Glow Effect
+    box-shadow: var(--shadow-lift);
+
+    // --- MODE EXCEPTIONS ---
+    @include when-light {
+      background: alpha(var(--energy-primary), 10%);
+      color: var(--energy-primary);
+    }
+
+    @include when-retro {
+      background: alpha(var(--color-success), 20%);
+    }
+  }
+}
+
+// 4. UTILITIES
+// --------------------------------------------------------------------------
+
+// Naked Reset (Use this class to opt-out of the block above)
+.btn-void {
+  @include btn-reset;
+}
+
+// Icon Button
+// void-exception: Dual-usage — component (IconBtn) + bare class across files.
+.btn-icon {
+  padding: var(--space-xs);
+  min-width: var(--control-height);
+  min-height: var(--control-height);
+  border-radius: var(--radius-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: alpha(var(--energy-secondary), 8%);
+
+      @include when-light {
+        background: alpha(var(--energy-primary), 8%);
+      }
+
+      @include when-retro {
+        background: transparent;
+        filter: brightness(1.25);
+      }
+    }
+  }
+}

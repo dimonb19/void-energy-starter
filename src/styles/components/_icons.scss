@@ -1,0 +1,44 @@
+/* SVG icon styling. */
+
+@use '../abstracts' as *;
+
+// Base icon utility.
+.icon {
+  // Layout and sizing.
+  display: inline-block;
+  vertical-align: middle;
+  width: 1em;
+  height: 1em;
+  font-size: inherit; // Match surrounding text by default
+
+  background-color: transparent;
+
+  // Spring Transitions (transform for rotation, color for hover)
+  transform-origin: center center;
+  transition:
+    transform var(--speed-fast) var(--ease-spring-snappy),
+    color var(--speed-fast) var(--ease-spring-snappy);
+
+  // Sizes: sm (caption) < md (body) < lg < xl < 2xl < 3xl < 4xl
+  &[data-size='sm'] {
+    font-size: var(--font-size-caption);
+  }
+  &[data-size='md'] {
+    font-size: var(--font-size-body);
+  }
+  &[data-size='lg'] {
+    font-size: var(--font-size-h5);
+  }
+  &[data-size='xl'] {
+    font-size: var(--font-size-h4);
+  }
+  &[data-size='2xl'] {
+    font-size: var(--font-size-h3);
+  }
+  &[data-size='3xl'] {
+    font-size: var(--font-size-h2);
+  }
+  &[data-size='4xl'] {
+    font-size: var(--font-size-h1);
+  }
+}

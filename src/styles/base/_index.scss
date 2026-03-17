@@ -1,0 +1,10 @@
+/* Base layer aggregator (reset, fonts, typography, themes, accessibility, print). */
+
+@forward 'reset';
+@forward '../config/fonts'; // [AUTO-GENERATED] from design-tokens.ts
+@forward 'typography';
+@forward 'prose'; // Block-level prose elements (blockquote, figure, lists)
+@forward 'tables'; // Base table element styling
+@forward 'themes';
+@forward 'accessibility'; // High Contrast Mode + Reduced Motion overrides
+@forward 'print'; // Print optimization (must be last — overrides everything)

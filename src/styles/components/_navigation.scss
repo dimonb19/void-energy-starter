@@ -1,0 +1,584 @@
+/* ==========================================================================
+ * NAVIGATION & TABS
+ * ==========================================================================
+ *
+ * Top-level navigation bar and reusable tab system.
+ *
+ * ARCHITECTURE:
+ * - Section 1: Navigation Bar
+ *   - .nav-bar : Top navigation container (use with .surface-raised)
+ *   - .nav-menu : Slide-out navigation menu
+ *   - .bottom-bar  : Nested submenu within nav menu
+ *
+ * - Section 2: Tab System
+ *   - .tab          : Base tab link/button
+ *   - .submenu      : Container for nested subtab links
+ *   - .subtab       : Nested tab within nav menu
+ *
+ * PHYSICS BEHAVIOR:
+ * - Glass: Subtle color transitions, border glow on active
+ * - Flat:  Solid backgrounds, crisp state changes
+ * - Retro: Hard borders, instant transitions
+ *
+ * USAGE:
+ * ```html
+ * <nav class="nav-bar surface-raised backdrop-blur-physics ...">
+ *   <a class="tab" href="/">Home</a>
+ *   <a class="tab" data-state="active" href="/about">About</a>
+ * </nav>
+ * ```
+ *
+ * @see /CHEAT-SHEET.md for usage examples
+ * ==========================================================================
+ */
+
+@use '../abstracts' as *;
+
+// ==========================================================================
+// 1. NAVIGATION BAR
+// ==========================================================================
+// The nav-bar class modifies .surface-raised for header-specific styling.
+// Use with: class="nav-bar surface-raised backdrop-blur-physics ..."
+// ==========================================================================
+
+.nav-bar {
+  @include surface-raised;
+  @include glass-blur;
+
+  height: calc(var(--nav-height) + var(--space-md) + var(--safe-top));
+  padding-top: calc(var(--space-md) + var(--safe-top));
+  background: var(--bg-surface);
+
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: z('overlay');
+
+  // Remove rounded corners for full-width header
+  border-radius: 0;
+  border: none;
+
+  // Hide-on-scroll transition
+  transition: transform var(--speed-base) var(--ease-spring-bounce);
+  transform: translateY(calc(-1 * var(--space-md)));
+
+  @include mobile-only {
+    transition-timing-function: var(--ease-flow);
+  }
+
+  &[data-hidden='true'] {
+    transform: translateY(-100%);
+  }
+
+  @include when-retro {
+    transition-duration: 0.3s; // void-ignore (Stepped retro transition)
+  }
+
+  @include when-light {
+    box-shadow: var(--shadow-lift); // Subtle shadow for separation
+  }
+
+  .search {
+    position: relative;
+
+    svg {
+      position: absolute;
+      left: var(--space-sm);
+      top: 0;
+      height: 100%;
+      pointer-events: none;
+      color: var(--text-mute);
+    }
+
+    #search {
+      width: 100%;
+      padding-left: var(--space-xl);
+      transition: width var(--speed-base) var(--ease-spring-gentle);
+
+      @include respond-up(tablet) {
+        width: var(--space-5xl);
+      }
+
+      @include respond-up(small-desktop) {
+        &:focus {
+          width: calc(var(--space-5xl) * 2);
+        }
+      }
+    }
+  }
+}
+
+// ==========================================================================
+// 2. TAB SYSTEM
+// ==========================================================================
+// Reusable tab styling for navigation, settings panels, and tab bars.
+// Tabs are text-based links/buttons with hover and active states.
+// ==========================================================================
+
+.tab {
+  // void-exception: Bare class on <a>/<button> elements across multiple files.
+  // --- A. Layout & Sizing ---
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+
+  // --- B. Typography ---
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  text-decoration: none;
+
+  // --- C. Visual ---
+  border-radius: var(--radius-base);
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+
+  // --- D. Transitions ---
+  transition:
+    color var(--speed-fast) var(--ease-spring-snappy),
+    background-color var(--speed-fast) var(--ease-spring-snappy),
+    border-color var(--speed-fast) var(--ease-spring-snappy);
+
+  // --- E. Interaction States ---
+
+  &:hover {
+    color: var(--energy-primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  // Active/Selected state (use data-state="active" or aria-selected="true")
+  @include when-state('active') {
+    background-color: alpha(var(--energy-secondary), 12%);
+    color: var(--energy-primary);
+  }
+
+  // Expandable tab (shows arrow)
+  .arrow {
+    width: var(--space-xs);
+    height: var(--space-xs);
+    aspect-ratio: 1 / 1;
+    flex: none;
+    border-right: 2px solid currentColor; // void-ignore (Chevron Readability)
+    border-bottom: 2px solid currentColor; // void-ignore (Chevron Readability)
+    transform: rotate(45deg);
+
+    // Only show arrow on hover-capable devices (desktop with mouse)
+    // Touch-only devices use the burger menu instead
+    display: none;
+
+    @media (hover: hover) {
+      display: inline-flex;
+    }
+  }
+
+  &:hover .arrow {
+    transform: scaleY(1.1) translateY(10%) rotate(45deg);
+  }
+
+  // --- F. Navigation Loading State ---
+  // .tab needs position/overflow since it doesn't have them from base styles.
+  @include when-state('loading') {
+    position: relative;
+    overflow: hidden;
+  }
+  @include navlink-loading;
+}
+
+// ==========================================================================
+// 3. NAV MENU
+// ==========================================================================
+// Used for both mobile slide-in menu and desktop hover dropdown.
+// CSS capability queries handle the behavioral difference.
+
+.nav-menu {
+  position: fixed;
+  top: var(--nav-height);
+  right: 0;
+  z-index: z('overlay');
+  padding: var(--space-sm);
+  padding-right: max(var(--space-sm), var(--safe-right));
+  min-width: 100%;
+
+  @include mobile-only {
+    padding-left: max(var(--space-sm), var(--safe-left));
+  }
+  background-color: var(--bg-surface);
+  transform: none !important; // Disable scale and translate from materialize
+
+  @include respond-up(tablet) {
+    min-width: calc(var(--space-5xl) * 2);
+    border-bottom-left-radius: var(--radius-base);
+  }
+
+  @include when-glass {
+    @include glass-blur;
+  }
+}
+
+.nav-menu-scrim {
+  position: fixed;
+  inset: 0;
+  background: alpha(var(--bg-canvas), 80%);
+  z-index: z('dropdown');
+  transform: none !important; // override scale and translate from materialize
+
+  // Light mode override.
+  @include when-light {
+    background: alpha(var(--text-main), 50%);
+  }
+}
+
+// void-exception: CSS-only navigation classes — bare class on elements, no wrapping component.
+.submenu {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  margin-left: var(--space-sm);
+  border-left: var(--physics-border-width) solid var(--border-color);
+}
+
+.subtab {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-base);
+
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+  text-decoration: none;
+
+  &:hover {
+    background-color: alpha(var(--energy-secondary), 10%);
+    color: var(--energy-primary);
+  }
+
+  // Active/Selected state (use data-state="active" or aria-selected="true")
+  @include when-state('active') {
+    &:not(.expandable) {
+      background-color: var(--energy-primary);
+      color: var(--bg-canvas);
+    }
+
+    &.expandable {
+      color: var(--energy-primary);
+    }
+  }
+
+  // Chevron rotation for expandable items
+  .icon[data-expanded='true'] {
+    transform: rotate(90deg);
+  }
+}
+
+// ==========================================================================
+// 5. STAGGERED ENTRY ANIMATION
+// ==========================================================================
+// CSS-based stagger animation for nav-menu items.
+// Replaces Svelte in:materialize which doesn't work inside {#each} blocks.
+//
+// Usage: Set --item-index on each element via style attribute.
+// Example: <a style="--item-index: {i}">
+
+.nav-menu > *,
+.nav-menu > span > * {
+  animation: stagger-enter var(--speed-base) var(--ease-spring-snappy) backwards;
+  animation-delay: calc(var(--item-index, 0) * 50ms);
+
+  // Accessibility: respect reduced motion preference
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.submenu > li {
+  animation: stagger-enter var(--speed-base) var(--ease-spring-snappy) backwards;
+  animation-delay: calc(var(--item-index, 0) * 50ms);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// ==========================================================================
+// 4. MOBILE BOTTOM NAVIGATION
+// ==========================================================================
+
+.bottom-nav {
+  @include surface-raised;
+  @include glass-blur;
+
+  position: fixed;
+  top: unset;
+  bottom: calc(var(--space-xs) + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: z('header');
+  border-radius: var(--radius-full);
+
+  // Landscape: safe area replaces margin when larger than design spacing.
+  // Portrait on non-notch: max(32px, 0px) = 32px each side (unchanged).
+  width: calc(
+    100% - max(var(--space-lg), var(--safe-left)) - max(
+        var(--space-lg),
+        var(--safe-right)
+      )
+  );
+
+  .tab {
+    width: 100%;
+    white-space: nowrap;
+    font-size: var(--font-size-h3);
+    border-radius: var(--radius-full);
+    z-index: z('base'); // Sit above the sliding indicator
+
+    // The sliding indicator handles active state — no bg change on tab
+    @include when-state('active') {
+      background-color: transparent;
+    }
+
+    // Suppress navlink loading shimmer — pill slide is the feedback on mobile
+    @include when-state('loading') {
+      &::after {
+        display: none;
+      }
+    }
+  }
+}
+
+// --------------------------------------------------------------------------
+// BOTTOM NAV SLIDING INDICATOR
+// --------------------------------------------------------------------------
+// Pill-shaped element that slides behind the active tab.
+// Positioned via CSS custom properties set by JS (same pattern as Tabs).
+// --------------------------------------------------------------------------
+.bottom-nav-indicator {
+  position: absolute;
+  left: var(--_indicator-left, 0);
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--_indicator-width, 0);
+  height: var(--_indicator-height, 0);
+  border-radius: var(--radius-full);
+  background: alpha(var(--energy-secondary), 12%);
+  pointer-events: none;
+
+  // Hidden until JS positions it and adds data-ready
+  opacity: 0;
+
+  transition:
+    left var(--speed-base) var(--ease-spring-snappy),
+    width var(--speed-base) var(--ease-spring-snappy),
+    height var(--speed-base) var(--ease-spring-snappy);
+
+  // --- Entry: fade + blur in after JS positions the indicator ---
+  &[data-ready] {
+    animation: bottom-nav-materialize var(--speed-base) var(--ease-flow) both;
+  }
+
+  // --- Retro: solid fill, no rounding ---
+  @include when-retro {
+    background: alpha(var(--energy-primary), 15%);
+  }
+
+  // --- Light mode: slightly stronger fill ---
+  @include when-light {
+    background: alpha(var(--energy-primary), 10%);
+  }
+}
+
+// Body clearance for mobile bottom nav (matches tablet:hidden in template).
+@include mobile-only {
+  :root {
+    --bottom-nav-clearance: calc(
+      var(--size-touch-min) + var(--space-sm) + var(--safe-bottom)
+    );
+  }
+}
+
+// ==========================================================================
+// 6. BREADCRUMBS
+// ==========================================================================
+// Fixed breadcrumb trail positioned directly below the nav-bar.
+// Visually unified with nav-bar: same background, blur, no gap.
+// Hides in sync with nav-bar via data-hidden attribute.
+//
+// ARCHITECTURE:
+// - .breadcrumbs           : Fixed container, full-width mobile, auto-width desktop
+// - .breadcrumbs-separator : `/` or `›` character between items
+// - .breadcrumbs-link      : Clickable ancestor/peer segments
+// - .breadcrumbs-current   : Terminal/active segment (non-clickable)
+//
+// STATE:
+// - data-hidden="true" : Slides off-screen in sync with nav-bar
+//
+// USAGE:
+// ```html
+// <nav class="breadcrumbs flex items-center px-sm" aria-label="Breadcrumb">
+//   <ol>...</ol>
+// </nav>
+// ```
+// ==========================================================================
+
+.breadcrumbs {
+  // --- A. Positioning ---
+  position: fixed;
+  top: calc(var(--nav-height) + var(--safe-top));
+  left: 0;
+  z-index: z('overlay');
+
+  // --- B. Sizing ---
+  width: 100%;
+  height: var(--breadcrumbs-height);
+
+  // --- C. Visual union with nav-bar ---
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-float);
+
+  // --- D. Hide-on-scroll transition (synced with nav-bar) ---
+  transition: transform var(--speed-base) var(--ease-spring-bounce);
+
+  @include mobile-only {
+    transition-timing-function: var(--ease-flow);
+  }
+
+  &[data-hidden='true'] {
+    transform: translateY(
+      calc(-1 * var(--nav-height) - var(--safe-top) - 100%)
+    );
+  }
+
+  // --- E. Desktop: auto-width with rounded corner ---
+  @include respond-up(tablet) {
+    width: auto;
+    border-bottom-right-radius: var(--radius-base);
+  }
+
+  // --- F. Physics overrides ---
+  @include when-glass {
+    @include glass-blur;
+  }
+
+  @include when-retro {
+    transition-duration: 0.3s; // void-ignore (Stepped retro transition)
+  }
+
+  @include when-dark {
+    background: var(--bg-sunk);
+  }
+
+  // --- G. List reset ---
+  ol {
+    list-style: none;
+  }
+}
+
+// --- Separator character ---
+.breadcrumbs-separator {
+  color: var(--text-mute);
+  font-size: var(--font-size-small);
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+// --- Clickable ancestor/peer link ---
+.breadcrumbs-link {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+  color: var(--text-dim);
+  text-decoration: none;
+  @include text-truncate(1);
+  max-width: var(--space-5xl);
+
+  &:hover {
+    color: var(--energy-primary);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-base);
+  }
+}
+
+// --- Terminal / active segment ---
+.breadcrumbs-current {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+  color: var(--text-main);
+  font-weight: var(--font-weight-semibold);
+  @include text-truncate(1);
+  max-width: var(--space-5xl);
+}
+
+// ==========================================================================
+// 7. PROFILE AVATAR
+// ==========================================================================
+// Circular avatar badge showing the user's role initial letter or avatar image.
+// Lives inside ProfileBtn, rendered only when signed in.
+// Geometry (flex, shrink, overflow) lives on the element via Tailwind.
+// Width/height use token vars (no Tailwind mapping exists for w-md/h-md).
+//
+// USAGE:
+// <span class="profile-avatar flex items-center justify-center shrink-0 overflow-hidden">C</span>
+// <span class="profile-avatar flex items-center justify-center shrink-0 overflow-hidden">
+//   <img class="w-full h-full" src="..." />
+// </span>
+// ==========================================================================
+
+.profile-avatar {
+  // --- A. Sizing (token-requiring, no Tailwind mapping) ---
+  width: var(--space-md);
+  height: var(--space-md);
+  border-radius: var(--radius-full);
+
+  // --- B. Typography ---
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  text-transform: uppercase;
+
+  // --- C. Surface ---
+  background: alpha(var(--energy-primary), 15%);
+  color: var(--energy-primary);
+  border: var(--physics-border-width) solid alpha(var(--energy-primary), 30%);
+
+  // --- D. Transitions ---
+  transition:
+    background-color var(--speed-fast) var(--ease-spring-snappy),
+    border-color var(--speed-fast) var(--ease-spring-snappy),
+    color var(--speed-fast) var(--ease-spring-snappy);
+
+  // --- E. Avatar Image ---
+  img {
+    object-fit: cover;
+    border-radius: var(--radius-full);
+  }
+
+  // --- F. Physics Overrides ---
+  @include when-retro {
+    background: var(--bg-canvas);
+    border-color: var(--energy-primary);
+  }
+
+  @include when-light {
+    background: alpha(var(--energy-primary), 10%);
+    border-color: alpha(var(--energy-primary), 40%);
+  }
+}

@@ -1,0 +1,828 @@
+/* Input and form styling with sunk physics and native controls. */
+
+@use '../abstracts' as *;
+
+// ==========================================================================
+// INPUTS & FORMS (Native-First)
+// Favor native reliability while applying Void physics sparingly.
+// ==========================================================================
+
+// 1. GLOBAL FORM DEFAULTS
+// --------------------------------------------------------------------------
+:where(input, select, textarea) {
+  // Keep native UI aligned with dark canvas.
+  color-scheme: dark;
+
+  // Light mode exception.
+  @include when-light {
+    color-scheme: light;
+  }
+}
+
+// 2. TEXT FIELDS (Text, Password, Email, Textarea)
+// --------------------------------------------------------------------------
+// We still apply the "Sunk" look to the box itself, as this is safe styling.
+input:where(
+  :not([type='checkbox']):not([type='radio']):not([type='range']):not(
+      [type='file']
+    )
+),
+textarea,
+select {
+  appearance: none; // Reset default borders
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--control-padding-y) var(--control-padding-x);
+  border-radius: var(--radius-base);
+
+  font-family: var(--font-body);
+  font-size: var(--font-size-body);
+  color: var(--text-main);
+
+  // Apply sunk physics.
+  @include surface-sunk;
+
+  // Unified Spring Transitions
+  // All focus/error state changes use the same spring for cohesive feel
+  transition:
+    border-color var(--speed-fast) var(--ease-spring-snappy),
+    box-shadow var(--speed-fast) var(--ease-spring-snappy),
+    background-color var(--speed-fast) var(--ease-spring-snappy);
+
+  &::placeholder {
+    color: var(--text-mute);
+    opacity: 0.7;
+  }
+
+  // Focus state.
+  &:focus-visible {
+    outline: none;
+    border-color: var(--energy-primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  // Error state (use aria-invalid for accessibility).
+  &[aria-invalid='true'],
+  &:user-invalid {
+    border-color: var(--color-error);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    background: alpha(var(--border-color), 0.15);
+  }
+}
+
+textarea {
+  min-height: calc(var(--space-5xl) * var(--density, 1));
+  resize: vertical;
+}
+
+// 3. SELECT DROPDOWNS (Native)
+// --------------------------------------------------------------------------
+select {
+  appearance: auto;
+
+  padding-right: var(--space-xl);
+  cursor: pointer;
+
+  // Ensure options are readable in WebKit.
+  background-color: var(--bg-sunk);
+}
+
+// 4. RANGE SLIDERS (Native + Accent)
+// --------------------------------------------------------------------------
+input[type='range'] {
+  appearance: auto; // Let the browser draw the track.
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+
+  // Accent color for thumb/track.
+  accent-color: var(--energy-primary);
+
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// 5. CHECKBOXES & RADIOS (Native + Accent)
+// --------------------------------------------------------------------------
+input[type='checkbox'],
+input[type='radio'] {
+  appearance: auto;
+  width: calc(
+    1.25rem * var(--density, 1)
+  ); // void-ignore (native checkbox size — no token at 1.25rem)
+  height: calc(
+    1.25rem * var(--density, 1)
+  ); // void-ignore (native checkbox size — no token at 1.25rem)
+
+  accent-color: var(--energy-primary);
+
+  cursor: pointer;
+  vertical-align: middle;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+  }
+
+  // Glass: glow on checked state.
+  @include when-glass {
+    &:checked:not(:disabled) {
+      filter: drop-shadow(
+        0 0 3px var(--energy-primary)
+      ); // void-ignore (Glow Physics)
+    }
+  }
+
+  // Retro: chunkier controls.
+  @include when-retro {
+    transform: scale(1.15);
+  }
+
+  // Hover enhancement (hover-capable devices only).
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      @include when-glass {
+        filter: drop-shadow(
+          0 0 2px var(--energy-primary)
+        ); // void-ignore (Glow Physics)
+      }
+    }
+  }
+}
+
+// 6. FILE DROPZONE (Native Overlay Strategy)
+// --------------------------------------------------------------------------
+.dropzone {
+  position: relative; // Required for overlay.
+
+  // void-hybrid-exception: min-height uses density scaling (physics-dependent geometry).
+  min-height: calc(var(--space-5xl) * var(--density, 1));
+  border-radius: calc(var(--radius-base) * 2);
+
+  border: var(--physics-border-width) dashed alpha(var(--energy-secondary), 30%);
+  @include surface-sunk;
+  border-style: dashed; // Override sunk solid border
+
+  cursor: pointer;
+  // Unified spring transitions for drag state changes
+  transition:
+    background-color var(--speed-fast) var(--ease-spring-snappy),
+    border-color var(--speed-fast) var(--ease-spring-snappy),
+    box-shadow var(--speed-fast) var(--ease-spring-snappy),
+    transform var(--speed-fast) var(--ease-spring-snappy);
+
+  // Invisible input overlay for click/drop capture.
+  input[type='file'] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; // Invisible but clickable.
+    cursor: pointer;
+    z-index: z('float');
+  }
+
+  // Visible affordance layer.
+  .dropzone-content {
+    pointer-events: none; // Let clicks pass through to input.
+    z-index: z('base'); // Sit above the sunk background
+
+    svg,
+    .btn-icon {
+      width: var(--space-xl);
+      height: var(--space-xl);
+      font-size: var(--space-lg);
+      color: var(--text-mute);
+      transition: color var(--speed-fast) var(--ease-spring-snappy);
+    }
+
+    p {
+      color: var(--text-mute);
+    }
+  }
+
+  // Hover/drag active.
+  &:hover,
+  &[data-state='active'],
+  &:focus-within {
+    border-color: var(--energy-primary);
+    background-color: blend(var(--bg-sunk), var(--energy-primary), 5%);
+    box-shadow: var(--shadow-lift);
+    transform: scale(1.005);
+
+    .dropzone-content {
+      svg,
+      .btn-icon {
+        color: var(--energy-primary);
+      }
+      p {
+        color: var(--text-main);
+      }
+    }
+
+    @include when-light {
+      background-color: var(--bg-canvas);
+      border-color: var(--energy-primary);
+      .dropzone-content svg {
+        filter: none;
+      }
+    }
+
+    @include when-retro {
+      transform: none;
+      border-width: calc(var(--physics-border-width) * 2);
+    }
+  }
+}
+
+// 7. DATE & TIME INPUTS (Native Pickers)
+// --------------------------------------------------------------------------
+// Style the WebKit picker indicator and internal edit segments to match
+// the design system. The OS-level calendar/clock popup can't be styled,
+// but the trigger icon and in-field segments can.
+
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'] {
+  // Picker indicator icon (calendar / clock)
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    border-radius: var(--radius-base);
+    padding: calc(var(--space-xs) / 2);
+    transition: filter var(--speed-fast) var(--ease-spring-snappy);
+
+    // Hover: subtle bg tint matching btn-icon pattern
+    &:hover {
+      background-color: alpha(var(--energy-secondary), 8%);
+    }
+  }
+
+  // Internal text segments (day, month, year, hour, minute)
+  &::-webkit-datetime-edit {
+    font-family: var(--font-body);
+    color: var(--text-main);
+  }
+
+  &::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+
+  // Segment separators (/, :, etc.)
+  &::-webkit-datetime-edit-text {
+    color: var(--text-mute);
+  }
+
+  // Individual segments — dim when placeholder, normal when filled
+  &::-webkit-datetime-edit-day-field,
+  &::-webkit-datetime-edit-month-field,
+  &::-webkit-datetime-edit-year-field,
+  &::-webkit-datetime-edit-hour-field,
+  &::-webkit-datetime-edit-minute-field,
+  &::-webkit-datetime-edit-second-field,
+  &::-webkit-datetime-edit-ampm-field {
+    color: var(--text-main);
+
+    &:focus {
+      background: alpha(var(--energy-primary), 20%);
+      border-radius: var(--radius-base);
+      color: var(--text-main);
+    }
+  }
+
+  // Icon color is handled by color-scheme (dark/light) on the global
+  // input selector — no filter inversion needed.
+
+  // Light: match btn-icon light hover tint
+  @include when-light {
+    &::-webkit-calendar-picker-indicator:hover {
+      background-color: alpha(var(--energy-primary), 8%);
+    }
+  }
+
+  // Retro: dim icon at rest for CRT feel, brighten on hover
+  @include when-retro {
+    &::-webkit-calendar-picker-indicator {
+      border-radius: 0;
+      transition: none;
+      opacity: 0.6;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    &::-webkit-datetime-edit-day-field,
+    &::-webkit-datetime-edit-month-field,
+    &::-webkit-datetime-edit-year-field,
+    &::-webkit-datetime-edit-hour-field,
+    &::-webkit-datetime-edit-minute-field,
+    &::-webkit-datetime-edit-second-field,
+    &::-webkit-datetime-edit-ampm-field {
+      &:focus {
+        border-radius: 0;
+      }
+    }
+  }
+}
+
+// 8. COLOR INPUT (Native Swatch)
+// --------------------------------------------------------------------------
+// Strip browser chrome from the color picker and make the swatch integrate
+// with the surface-sunk surface. The OS color dialog can't be styled, but the
+// trigger swatch can.
+
+input[type='color'] {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: var(--control-padding-y);
+  cursor: pointer;
+  height: var(--control-height);
+  width: var(--control-height);
+  min-height: 0;
+
+  // The swatch pseudo-element (WebKit/Blink)
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+
+  &::-webkit-color-swatch {
+    border: var(--physics-border-width) solid alpha(var(--border-color), 40%);
+    border-radius: calc(var(--radius-base) / 2);
+  }
+
+  // Firefox swatch
+  &::-moz-color-swatch {
+    border: var(--physics-border-width) solid alpha(var(--border-color), 40%);
+    border-radius: calc(var(--radius-base) / 2);
+  }
+
+  // Retro: squared swatch
+  @include when-retro {
+    border-radius: 0;
+
+    &::-webkit-color-swatch,
+    &::-moz-color-swatch {
+      border-radius: 0;
+    }
+  }
+
+  // Light: stronger swatch border for visibility
+  @include when-light {
+    &::-webkit-color-swatch,
+    &::-moz-color-swatch {
+      border-color: alpha(var(--border-color), 60%);
+    }
+  }
+}
+
+// 9. AUTOFILL OVERRIDE (Webkit Browsers)
+// --------------------------------------------------------------------------
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill {
+  // void-ignore (browser autofill hack — no token equivalent)
+  -webkit-box-shadow: 0 0 0px 1000px var(--bg-canvas) inset !important;
+
+  -webkit-text-fill-color: var(--text-main) !important;
+
+  border-radius: var(--radius-base);
+
+  transition: background-color 5000s ease-in-out 0s; // void-ignore (autofill flash suppression)
+}
+
+// 10. AUTOFILL OVERRIDE (Firefox)
+// --------------------------------------------------------------------------
+input:-moz-autofill,
+textarea:-moz-autofill {
+  filter: none;
+  background-color: var(--bg-sunk) !important;
+  color: var(--text-main) !important;
+}
+
+// 11. FIELDSET & LEGEND
+// --------------------------------------------------------------------------
+fieldset {
+  margin: 0;
+  min-inline-size: 0;
+  // void-hybrid-exception: global element selector, no class handle for Tailwind.
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: var(--physics-border-width) solid var(--border-color);
+  border-radius: var(--radius-base);
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+legend {
+  padding-inline: var(--space-xs);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-dim);
+
+  transition: color var(--speed-fast) var(--ease-spring-snappy);
+}
+
+// 12. SWITCHER (Native Radio Foundation)
+// --------------------------------------------------------------------------
+.switcher-group {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.switcher-option {
+  position: relative;
+  margin: 0;
+  cursor: pointer;
+
+  .switcher-option-content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+  }
+
+  .switcher-native {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    appearance: none;
+    opacity: 0;
+    filter: none;
+    transform: none;
+    cursor: pointer;
+  }
+
+  &:has(.switcher-native:focus-visible) {
+    border-color: var(--energy-primary);
+    box-shadow: var(--focus-ring);
+  }
+
+  &:has(.switcher-native:disabled) {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  &:has(.switcher-native:disabled) .switcher-native {
+    cursor: not-allowed;
+  }
+
+  &:has(.switcher-native:disabled) .switcher-option-content {
+    opacity: 0.6;
+  }
+}
+
+// 13. DETAILS & SUMMARY (Native Disclosure)
+// --------------------------------------------------------------------------
+details {
+  @include surface-sunk;
+  margin: 0;
+  font-size: var(--font-size-small);
+
+  p {
+    font-size: inherit;
+  }
+
+  // Content animation via ::details-content pseudo-element.
+  // Requires `interpolate-size: allow-keywords` on :root (see _reset.scss).
+  // Progressive enhancement: unsupported browsers get instant open/close.
+  &::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size var(--speed-base) var(--ease-spring-snappy),
+      content-visibility var(--speed-base) allow-discrete;
+  }
+
+  &[open] {
+    border-color: var(--energy-primary);
+
+    &::details-content {
+      block-size: auto;
+    }
+
+    > summary {
+      border-bottom: var(--physics-border-width) solid var(--border-color);
+
+      &::after {
+        transform: rotate(-135deg);
+      }
+    }
+  }
+
+  // Disabled pattern
+  &:has(> summary[aria-disabled='true']) {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  // Reset sunk-surface physics on <pre> — details already provides the surface.
+  pre {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  @include when-retro {
+    &::details-content {
+      transition: none;
+    }
+
+    summary::after {
+      transition: none;
+    }
+  }
+}
+
+summary {
+  // void-hybrid-exception: global element selector, no class handle for Tailwind.
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+
+  padding: var(--space-sm) var(--space-md);
+  list-style: none;
+  cursor: pointer;
+
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-dim);
+
+  transition: color var(--speed-fast) var(--ease-spring-snappy);
+
+  // Remove native marker
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  // CSS chevron indicator
+  &::after {
+    content: '';
+    flex-shrink: 0;
+    width: 0.4em;
+    height: 0.4em;
+    border-right: var(--physics-border-width) solid currentColor;
+    border-bottom: var(--physics-border-width) solid currentColor;
+    transform: rotate(45deg);
+
+    transition: transform var(--speed-fast) var(--ease-spring-snappy);
+  }
+
+  &:hover {
+    color: var(--text-main);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-base) var(--radius-base) 0 0;
+  }
+}
+
+// 14. PROGRESS BAR
+// --------------------------------------------------------------------------
+// void-hybrid-exception: progress height is a physics-dependent visual
+// property (retro uses taller bars, glass uses thinner). display: block on
+// a replaced element has no Tailwind equivalent targeting the element type.
+
+progress {
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: block;
+  width: 100%;
+  height: calc(var(--space-xs) * 0.5);
+  border: none;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  // Track.
+  background: var(--bg-sunk);
+
+  // Firefox: fill color via color property.
+  color: var(--energy-primary);
+
+  transition: background-color var(--speed-fast) var(--ease-spring-snappy);
+
+  // WebKit/Blink track.
+  &::-webkit-progress-bar {
+    background: var(--bg-sunk);
+    border-radius: var(--radius-full);
+  }
+
+  // WebKit/Blink fill.
+  &::-webkit-progress-value {
+    background: var(--energy-primary);
+    border-radius: var(--radius-full);
+    transition: width var(--speed-base) var(--ease-spring-snappy);
+  }
+
+  // Firefox fill.
+  &::-moz-progress-bar {
+    background: var(--energy-primary);
+    border-radius: var(--radius-full);
+  }
+
+  // Indeterminate state (no value attribute).
+  &:not([value]) {
+    background-size: 400% 100%;
+    animation: shimmer 2s infinite linear;
+    background-image: linear-gradient(
+      90deg,
+      var(--bg-sunk) 0%,
+      var(--bg-sunk) 20%,
+      alpha(var(--energy-primary), 40%) 50%,
+      var(--bg-sunk) 80%,
+      var(--bg-sunk) 100%
+    );
+
+    &::-webkit-progress-value {
+      background: transparent;
+    }
+
+    @include when-retro {
+      animation: shimmer 4s infinite steps(4);
+      background-image: linear-gradient(
+        90deg,
+        var(--bg-sunk) 0%,
+        var(--bg-sunk) 44%,
+        var(--border-color) 44%,
+        var(--border-color) 46%,
+        var(--bg-sunk) 46%,
+        var(--bg-sunk) 100%
+      );
+    }
+  }
+
+  // Glass: glowing fill.
+  @include when-glass {
+    &::-webkit-progress-value {
+      box-shadow: 0 0 var(--space-xs) alpha(var(--energy-primary), 60%);
+    }
+  }
+
+  // Retro: squared, slightly taller.
+  @include when-retro {
+    border-radius: 0;
+    height: calc(var(--space-xs) * 0.75);
+
+    &::-webkit-progress-bar {
+      border-radius: 0;
+    }
+
+    &::-webkit-progress-value {
+      border-radius: 0;
+    }
+
+    &::-moz-progress-bar {
+      border-radius: 0;
+    }
+  }
+
+  // Light: darker track for visibility.
+  @include when-light {
+    background: alpha(var(--border-color), 30%);
+
+    &::-webkit-progress-bar {
+      background: alpha(var(--border-color), 30%);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// 15. METER
+// --------------------------------------------------------------------------
+// Same dimensions as progress for visual consistency.
+// Three semantic ranges: optimum (success), sub-optimum (premium/amber),
+// danger (error).
+
+meter {
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: block;
+  width: 100%;
+  height: calc(var(--space-xs) * 0.5);
+  border: none;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  // Track.
+  background: var(--bg-sunk);
+
+  // WebKit track.
+  &::-webkit-meter-bar {
+    background: var(--bg-sunk);
+    border: none;
+    border-radius: var(--radius-full);
+  }
+
+  // Optimum range (green).
+  &::-webkit-meter-optimum-value {
+    background: var(--color-success);
+    border-radius: var(--radius-full);
+  }
+
+  // Sub-optimum range (amber/gold).
+  &::-webkit-meter-suboptimum-value {
+    background: var(--color-premium);
+    border-radius: var(--radius-full);
+  }
+
+  // Danger range (red).
+  &::-webkit-meter-even-less-good-value {
+    background: var(--color-error);
+    border-radius: var(--radius-full);
+  }
+
+  // Firefox: color property controls fill. Defaults to optimum.
+  color: var(--color-success);
+
+  // Glass: glow on optimum value.
+  @include when-glass {
+    &::-webkit-meter-optimum-value {
+      box-shadow: 0 0 var(--space-xs) alpha(var(--color-success), 50%);
+    }
+  }
+
+  // Retro: squared, slightly taller.
+  @include when-retro {
+    border-radius: 0;
+    height: calc(var(--space-xs) * 0.75);
+
+    &::-webkit-meter-bar,
+    &::-webkit-meter-optimum-value,
+    &::-webkit-meter-suboptimum-value,
+    &::-webkit-meter-even-less-good-value {
+      border-radius: 0;
+    }
+  }
+
+  // Light: darker track for visibility.
+  @include when-light {
+    background: alpha(var(--border-color), 30%);
+
+    &::-webkit-meter-bar {
+      background: alpha(var(--border-color), 30%);
+    }
+  }
+}
+
+// 16. OUTPUT
+// --------------------------------------------------------------------------
+// Computed value display element. Styled as a data pill — monospace font,
+// subtle energy-tinted background, pill shape.
+
+output {
+  display: inline-block;
+  font-family: var(--font-code);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--energy-primary);
+  padding-inline: var(--space-xs);
+
+  background: alpha(var(--energy-primary), 10%);
+  border-radius: var(--radius-full);
+
+  @include when-light {
+    background: alpha(var(--energy-primary), 8%);
+    color: var(--text-main);
+  }
+
+  @include when-retro {
+    border-radius: 0;
+    border: var(--physics-border-width) solid var(--energy-primary);
+    background: transparent;
+  }
+}

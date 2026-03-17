@@ -1,0 +1,545 @@
+/* ==========================================================================
+ * FIELD COMPOSITES
+ * ==========================================================================
+ *
+ * Overlay anatomy for composite input components that combine icons with
+ * native inputs. The input keeps ALL native styling from _inputs.scss.
+ * Icons are absolutely positioned inside using slot containers.
+ *
+ * ANATOMY:
+ * ┌─ .field (position: relative) ─────────────────────────────────────┐
+ * │  ┌─ input (native surface-sunk, extra padding) ──────────────────┐  │
+ * │  │  [.field-slot-left]    text    [.field-slot-right]           │  │
+ * │  │   abs left               ↕      abs right                   │  │
+ * │  └─────────────────────────────────────────────────────────────┘  │
+ * └────────────────────────────────────────────────────────────────────┘
+ *
+ * CLASSES:
+ * - .field            : Relative wrapper (no visual styling — input owns that)
+ * - .field-slot-left  : Absolutely positioned left icon container
+ * - .field-slot-right : Absolutely positioned right icon container
+ *
+ * COMPOSITES USING THIS PATTERN:
+ * - SearchField      : Search icon (left) + text input
+ * - PasswordField    : Password input + Eye toggle (right)
+ * - EditField        : text input + Edit (idle) or Undo/Check (editing) on right
+ * - EditTextarea     : textarea + Edit (idle) or Undo/Check (editing) on right (top-aligned)
+ * - CopyField        : Readonly input + Copy button (right)
+ * - GenerateField    : text input + Sparkle (idle) or LoadingQuill (generating) on right
+ * - GenerateTextarea : textarea + Sparkle (idle) or LoadingQuill (generating) on right
+ *
+ * FORM FIELD WRAPPER:
+ * - FormField     : Label + input (slot) + hint + error with ARIA wiring
+ *
+ * NON-FIELD COMPOSITES:
+ * - MediaSlider    : Mute toggle + range slider + replay (own anatomy)
+ * - SliderField    : Label + range slider + preset snap labels (own anatomy)
+ * - PasswordMeter  : Native meter bar + strength label (own anatomy)
+ *
+ * @see /src/components/ui/SearchField.svelte
+ * @see /src/components/ui/PasswordField.svelte
+ * @see /src/components/ui/EditField.svelte
+ * @see /src/components/ui/EditTextarea.svelte
+ * @see /src/components/ui/CopyField.svelte
+ * @see /src/components/ui/GenerateField.svelte
+ * @see /src/components/ui/GenerateTextarea.svelte
+ * @see /src/components/ui/MediaSlider.svelte
+ * @see /src/components/ui/SliderField.svelte
+ * @see /src/components/ui/PasswordMeter.svelte
+ * ==========================================================================
+ */
+
+@use '../abstracts' as *;
+
+// Slot width: icon (1em at body size) + padding on each side
+$_slot-width: var(--control-padding-x);
+
+// ==========================================================================
+// 1. FIELD WRAPPER (transparent — input owns all visual styling)
+// ==========================================================================
+
+.field {
+  position: relative;
+
+  // Search input: hide native clear button (we manage state ourselves)
+  input[type='search'] {
+    &::-webkit-search-cancel-button,
+    &::-webkit-search-decoration {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+  }
+
+  // --- Padding adjustments via :has() ---
+  // Slot icons use data-size="lg" (font-size-h5, ~18px) which doesn't scale
+  // with density, but spacing tokens do. At compact density the gap between
+  // icon and text collapses. The inverse-density term adds padding exactly
+  // when density is low and removes it when high, keeping the gap stable.
+  --_slot-correction: calc(var(--space-xs) * (1 - var(--density, 1)));
+
+  // Left slot present → pad input/textarea-left to make room for icon
+  &:has(.field-slot-left) input,
+  &:has(.field-slot-left) textarea {
+    padding-left: calc(
+      #{$_slot-width} + var(--space-lg) + var(--_slot-correction)
+    );
+  }
+
+  // Right slot present → pad input/textarea-right for icon(s)
+  &:has(.field-slot-right) input,
+  &:has(.field-slot-right) textarea {
+    padding-right: calc(
+      #{$_slot-width} + var(--space-lg) + var(--_slot-correction)
+    );
+  }
+
+  // Two buttons in right slot (editing state) → add room for second icon
+  &:has(.field-slot-right > :nth-child(2)) input,
+  &:has(.field-slot-right > :nth-child(2)) textarea {
+    padding-right: calc(
+      #{$_slot-width} + var(--space-lg) * 2 + var(--_slot-correction)
+    );
+  }
+
+  // Textarea fields: align slot icons to the top (not vertically centered)
+  // Pad top to match textarea's own vertical padding for first-line alignment
+  &:has(textarea) {
+    .field-slot-left,
+    .field-slot-right {
+      align-items: flex-start;
+      padding-top: var(--control-padding-y);
+    }
+  }
+}
+
+// ==========================================================================
+// 2. SLOT CONTAINERS (absolute, centered vertically)
+// ==========================================================================
+
+.field-slot-left,
+.field-slot-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space-xs) / 2);
+  pointer-events: none; // Let clicks pass through to input
+  color: var(--text-main);
+  transition: color var(--speed-fast) var(--ease-spring-snappy);
+
+  // Interactive elements inside slots get pointer events back
+  button {
+    pointer-events: auto;
+    cursor: pointer;
+
+    &:disabled {
+      color: var(--text-main);
+      pointer-events: none;
+      opacity: 0.5;
+      background: transparent;
+      border: none;
+      cursor: default;
+    }
+  }
+
+  // IconBtn inside slots: strip dimensions, color-only hover
+  .btn-icon {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 0;
+    padding: 0;
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        background: transparent;
+        color: var(--energy-primary);
+      }
+    }
+  }
+}
+
+.field-slot-left {
+  left: var(--control-padding-x);
+}
+
+.field-slot-right {
+  right: var(--control-padding-x);
+}
+
+// ==========================================================================
+// 3. COLOR FIELD (swatch + hex display)
+// ==========================================================================
+//
+// ANATOMY:
+// ┌─ .color-field.field (position: relative) ─────────────────────────────┐
+// │  <input type="color" class="color-field-native">  (hidden, visually) │
+// │  ┌─ .color-field-display ──────────────────────────────────────────┐  │
+// │  │  [.field-slot-left]       .color-field-hex                      │  │
+// │  │   .color-field-swatch       #FF5733                             │  │
+// │  └────────────────────────────────────────────────────────────────┘  │
+// └────────────────────────────────────────────────────────────────────────┘
+//
+// @see /src/components/ui/ColorField.svelte
+
+// Hide native input — it only exists for the picker dialog.
+// !important keeps it hidden even when :disabled overrides opacity in _inputs.scss.
+.color-field-native {
+  position: absolute;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  opacity: 0 !important; // void-ignore — must beat :disabled { opacity: 0.5 }
+  pointer-events: none;
+}
+
+// Display area — mimics a surface-sunk text input
+.color-field-display {
+  @include surface-sunk;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--control-height);
+  padding: var(--control-padding-y) var(--control-padding-x);
+  padding-left: calc(#{$_slot-width} + var(--space-lg) + var(--space-xs));
+  border-radius: var(--radius-base);
+  cursor: pointer;
+
+  transition:
+    border-color var(--speed-fast) var(--ease-spring-snappy),
+    box-shadow var(--speed-fast) var(--ease-spring-snappy);
+}
+
+// Swatch preview dot
+.color-field-swatch {
+  display: block;
+  width: var(--space-md);
+  height: var(--space-md);
+  border-radius: var(--radius-full);
+  border: var(--physics-border-width) solid alpha(var(--border-color), 40%);
+  flex-shrink: 0;
+
+  transition: box-shadow var(--speed-fast) var(--ease-spring-snappy);
+
+  @include when-retro {
+    border-radius: 0;
+  }
+}
+
+// Hex value text
+.color-field-hex {
+  font-family: var(--font-code);
+  font-size: var(--font-size-body);
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+
+// Focus ring — native input is visually hidden, so show ring on the display label
+.color-field:focus-within .color-field-display {
+  border-color: var(--energy-primary);
+  box-shadow: var(--focus-ring);
+}
+
+// Physics presets
+.color-field {
+  @include when-glass {
+    @media (hover: hover) {
+      &:hover .color-field-swatch {
+        box-shadow: 0 0 var(--space-xs) alpha(var(--energy-primary), 40%);
+      }
+    }
+  }
+
+  @include when-retro {
+    .color-field-display {
+      border-radius: 0;
+    }
+  }
+
+  @include when-light {
+    .color-field-swatch {
+      border-color: alpha(var(--border-color), 60%);
+    }
+  }
+
+  &.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+
+    // Prevent double-dimming — the wrapper handles the disabled opacity,
+    // so the hidden native input should not add its own.
+    .color-field-native:disabled {
+      opacity: 1;
+    }
+  }
+}
+
+// ==========================================================================
+// 4. GENERATE FIELD (AI generation shimmer during loading)
+// ==========================================================================
+
+.generate-field,
+.generate-textarea {
+  &[data-status='loading'] {
+    input,
+    textarea {
+      @include shimmer;
+    }
+  }
+}
+
+// ==========================================================================
+// 5. MEDIA SLIDER (non-field composite)
+// ==========================================================================
+
+.media-slider {
+  // Dim slider when muted
+  input[type='range'] {
+    transition: opacity var(--speed-fast) var(--ease-spring-snappy);
+  }
+
+  &[data-muted='true'] input[type='range'] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+// ==========================================================================
+// 6. SLIDER FIELD (non-field composite)
+// ==========================================================================
+//
+// ANATOMY:
+// ┌─ .slider-field (flex-col, gap-xs) ─────────────────────────────────────┐
+// │  <label>                          Optional field label                  │
+// │  <input type="range">             Native slider (accent-color primary)  │
+// │  ┌─ .slider-presets ─────────────────────────────────────────────────┐  │
+// │  │  .slider-preset  .slider-preset  .slider-preset                   │  │
+// │  │  [data-state="active"] when value matches                         │  │
+// │  └───────────────────────────────────────────────────────────────────┘  │
+// └─────────────────────────────────────────────────────────────────────────┘
+
+.slider-field {
+  &[data-disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+}
+
+// .slider-presets layout (flex justify-between) lives on the template via Tailwind.
+
+.slider-preset {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  padding: var(--space-xs) 0;
+  cursor: pointer;
+
+  transition: color var(--speed-fast) var(--ease-spring-snappy);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      color: var(--text-main);
+    }
+  }
+
+  @include when-state('active') {
+    color: var(--energy-primary);
+
+    @include when-glass {
+      text-shadow: 0 0 8px alpha(var(--energy-primary), 50%); // void-ignore (Glow Physics)
+    }
+
+    @include when-retro {
+      text-decoration: underline;
+      text-underline-offset: var(--space-xs);
+    }
+  }
+
+  @include when-light {
+    color: var(--text-dim);
+
+    @media (hover: hover) {
+      &:hover:not(:disabled) {
+        color: var(--text-main);
+      }
+    }
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-base);
+  }
+}
+
+// ==========================================================================
+// 7. FORM FIELD WRAPPER (Label + Input + Hint/Error)
+// ==========================================================================
+//
+// ANATOMY:
+// ┌─ .form-field (flex-col, gap-xs) ────────────────────────────────────────┐
+// │  <label class="form-field-label">     Optional label with for= wiring   │
+// │  ┌─ input area (children snippet) ──────────────────────────────────┐   │
+// │  │  Consumer-provided input element                                  │   │
+// │  └──────────────────────────────────────────────────────────────────┘   │
+// │  <p class="form-field-hint">          Optional help text                │
+// │  <p class="form-field-error">         Optional error with icon          │
+// │    └ aria-live="polite" role="alert"                                    │
+// └─────────────────────────────────────────────────────────────────────────┘
+
+.form-field-label {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-dim);
+  padding-inline: var(--space-xs);
+  cursor: pointer;
+}
+
+.form-field-required {
+  color: var(--color-error);
+  margin-left: calc(var(--space-xs) / 2);
+}
+
+.form-field-hint {
+  font-size: var(--font-size-caption);
+  color: var(--text-mute);
+  padding-inline: var(--space-xs);
+}
+
+.form-field-error {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-error);
+  padding-inline: var(--space-xs);
+
+  .icon {
+    flex-shrink: 0;
+  }
+
+  @include when-glass {
+    text-shadow: 0 0 8px alpha(var(--color-error), 40%); // void-ignore (Glow Physics)
+  }
+
+  @include when-retro {
+    text-shadow: none;
+  }
+}
+
+// ==========================================================================
+// 8. PASSWORD METER (non-field composite)
+// ==========================================================================
+//
+// ANATOMY:
+// ┌─ .password-meter (flex-col, gap-xs) ────────────────────────────────────┐
+// │  <meter>                          Native meter bar (styled in _inputs)   │
+// │  <span class="password-meter-label">   Strength level text              │
+// └─────────────────────────────────────────────────────────────────────────┘
+
+.password-meter-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-inline: var(--space-xs);
+  transition: color var(--speed-fast) var(--ease-spring-snappy);
+}
+
+.password-meter {
+  &[data-strength='weak'] .password-meter-label {
+    color: var(--color-error);
+  }
+
+  &[data-strength='fair'] .password-meter-label {
+    color: var(--color-premium);
+  }
+
+  &[data-strength='good'] .password-meter-label,
+  &[data-strength='strong'] .password-meter-label {
+    color: var(--color-success);
+  }
+
+  @include when-glass {
+    &[data-strength='strong'] .password-meter-label {
+      text-shadow: 0 0 8px alpha(var(--color-success), 50%); // void-ignore (Glow Physics)
+    }
+  }
+
+  @include when-retro {
+    .password-meter-label {
+      text-shadow: none;
+    }
+
+    &[data-strength='strong'] .password-meter-label {
+      text-decoration: underline;
+      text-underline-offset: var(--space-xs);
+    }
+  }
+
+  @include when-light {
+    &[data-strength='weak'] .password-meter-label {
+      color: var(--color-error-dark);
+    }
+
+    &[data-strength='fair'] .password-meter-label {
+      color: var(--color-premium-dark);
+    }
+
+    &[data-strength='good'] .password-meter-label,
+    &[data-strength='strong'] .password-meter-label {
+      color: var(--color-success-dark);
+    }
+  }
+}
+
+// ==========================================================================
+// 9. PASSWORD CHECKLIST (non-field composite)
+// ==========================================================================
+//
+// ANATOMY:
+// ┌─ .password-checklist (flex-col, gap-xs) ─────────────────────────────────┐
+// │  <li class="password-checklist-rule">   Check/X icon + label text        │
+// │    └ data-state="met" when requirement is satisfied                      │
+// └──────────────────────────────────────────────────────────────────────────┘
+
+.password-checklist-rule {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-mute);
+  padding-inline: var(--space-xs);
+  transition: color var(--speed-fast) var(--ease-spring-snappy);
+
+  .icon {
+    flex-shrink: 0;
+  }
+
+  @include when-state('met') {
+    color: var(--color-success);
+  }
+
+  @include when-glass {
+    @include when-state('met') {
+      text-shadow: 0 0 8px alpha(var(--color-success), 40%); // void-ignore (Glow Physics)
+    }
+  }
+
+  @include when-retro {
+    text-shadow: none;
+  }
+
+  @include when-light {
+    color: var(--text-dim);
+
+    @include when-state('met') {
+      color: var(--color-success-dark);
+    }
+  }
+}

@@ -59,9 +59,16 @@ export class VoidTooltip {
 
   private showTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Touch long-press guards
+  private touchGuarded = false;
+  private savedUserSelect = '';
+  private savedTouchCallout = '';
+
   // Bound handlers for proper cleanup
   private boundShow: () => void;
   private boundHide: () => void;
+  private boundTouchStart: () => void;
+  private boundTouchEnd: () => void;
 
   constructor(node: Element, options: VoidTooltipOptions) {
     this.trigger = node;
@@ -70,8 +77,44 @@ export class VoidTooltip {
     // Bind handlers once for consistent reference
     this.boundShow = this.show.bind(this);
     this.boundHide = this.hide.bind(this);
+    this.boundTouchStart = this.onTouchStart.bind(this);
+    this.boundTouchEnd = this.onTouchEnd.bind(this);
 
     this.init();
+  }
+
+  private static isEditable(el: Element): boolean {
+    const tag = el.tagName;
+    return (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      (el as HTMLElement).isContentEditable
+    );
+  }
+
+  private onTouchStart() {
+    if (this.touchGuarded) return;
+    if (VoidTooltip.isEditable(this.trigger)) return;
+
+    const style = (this.trigger as HTMLElement).style;
+    this.savedUserSelect = style.userSelect;
+    this.savedTouchCallout = style.getPropertyValue('-webkit-touch-callout');
+    style.userSelect = 'none';
+    style.setProperty('-webkit-touch-callout', 'none');
+    this.touchGuarded = true;
+  }
+
+  private onTouchEnd() {
+    if (!this.touchGuarded) return;
+
+    const style = (this.trigger as HTMLElement).style;
+    style.userSelect = this.savedUserSelect;
+    if (this.savedTouchCallout) {
+      style.setProperty('-webkit-touch-callout', this.savedTouchCallout);
+    } else {
+      style.removeProperty('-webkit-touch-callout');
+    }
+    this.touchGuarded = false;
   }
 
   private init() {
@@ -83,6 +126,20 @@ export class VoidTooltip {
     );
     hideEvents.forEach((evt) =>
       this.trigger.addEventListener(evt, this.boundHide),
+    );
+
+    this.trigger.addEventListener(
+      'touchstart',
+      this.boundTouchStart as EventListener,
+      { passive: true },
+    );
+    this.trigger.addEventListener(
+      'touchend',
+      this.boundTouchEnd as EventListener,
+    );
+    this.trigger.addEventListener(
+      'touchcancel',
+      this.boundTouchEnd as EventListener,
     );
   }
 
@@ -278,6 +335,20 @@ export class VoidTooltip {
     hideEvents.forEach((evt) =>
       this.trigger.removeEventListener(evt, this.boundHide),
     );
+
+    this.trigger.removeEventListener(
+      'touchstart',
+      this.boundTouchStart as EventListener,
+    );
+    this.trigger.removeEventListener(
+      'touchend',
+      this.boundTouchEnd as EventListener,
+    );
+    this.trigger.removeEventListener(
+      'touchcancel',
+      this.boundTouchEnd as EventListener,
+    );
+    this.onTouchEnd();
 
     this.hide();
   }

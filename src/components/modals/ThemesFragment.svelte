@@ -48,9 +48,16 @@
       .filter((id: string) => voidEngine.registry[id]?.mode === activeMode)
       .map((id: string) => {
         const meta = voidEngine.registry[id];
-        const style = Object.entries(meta.palette)
-          .map(([key, value]) => `--${key}: ${value}`)
-          .join('; ');
+        const pairs = Object.entries(meta.palette).map(
+          ([key, value]) => `--${key}: ${value}`,
+        );
+        // Add font-heading/font-body wrappers so typography inherits correctly
+        // (built-in themes get these from generated SCSS; custom themes need them inline)
+        const heading = meta.palette['font-atmos-heading'];
+        const body = meta.palette['font-atmos-body'];
+        if (heading) pairs.push(`--font-heading: ${heading}`);
+        if (body) pairs.push(`--font-body: ${body}`);
+        const style = pairs.join('; ');
         return {
           id,
           label: meta.label ?? capitalize(id),

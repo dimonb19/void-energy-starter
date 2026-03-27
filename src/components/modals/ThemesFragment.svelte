@@ -4,11 +4,7 @@
   import { toast } from '@stores/toast.svelte';
   import { dissolve, materialize } from '@lib/transitions.svelte';
   import { morph } from '@actions/morph';
-  import {
-    FONTS,
-    FONT_FAMILY_TO_KEY,
-    VOID_TOKENS,
-  } from '@config/design-tokens';
+  import { FONTS, FONT_FAMILY_TO_KEY } from '@config/design-tokens';
 
   import Switcher from '../ui/Switcher.svelte';
   import SliderField from '../ui/SliderField.svelte';
@@ -67,24 +63,17 @@
       }),
   ]);
 
-  // Get current atmosphere's theme definition (single lookup, used by both font keys)
-  let currentThemeDef = $derived(
-    VOID_TOKENS.themes[
-      voidEngine.atmosphere as keyof typeof VOID_TOKENS.themes
-    ],
-  );
-
   // Get current atmosphere's font keys for dynamic "System Default" labels
   let currentHeadingKey = $derived.by(() => {
-    if (!currentThemeDef) return 'Unknown';
-    const family = currentThemeDef.palette['font-atmos-heading'];
+    const family = voidEngine.currentTheme?.palette['font-atmos-heading'];
+    if (!family) return 'Unknown';
     const key = FONT_FAMILY_TO_KEY[family];
     return key ? capitalize(key) : 'Unknown';
   });
 
   let currentBodyKey = $derived.by(() => {
-    if (!currentThemeDef) return 'Unknown';
-    const family = currentThemeDef.palette['font-atmos-body'];
+    const family = voidEngine.currentTheme?.palette['font-atmos-body'];
+    if (!family) return 'Unknown';
     const key = FONT_FAMILY_TO_KEY[family];
     return key ? capitalize(key) : 'Unknown';
   });

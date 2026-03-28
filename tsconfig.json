@@ -9,6 +9,7 @@
       "@config/*": ["./src/config/*"],
       "@layouts/*": ["./src/layouts/*"],
       "@lib/*": ["./src/lib/*"],
+      "@service/*": ["./src/service/*"],
       "@stores/*": ["./src/stores/*"],
       "@styles/*": ["./src/styles/*"]
     }
